@@ -7,4 +7,3 @@
 
 How to run:
 1. Make sure your AVD emulator is running an OS that is Google Play enabled. 
-..1. Using Nexus 5x
