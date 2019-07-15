@@ -1,9 +1,6 @@
 # CSE535_MobileComputing
-
-| ------------- |:-------------:|:-------------:|-------------:|
-| Mario Padilla      | Efren Lopez Morales   | Ahn   | Vipanchi   |
-
-| Tables        | Are           | Cool  | Cool  |
+#Project Members
+| 1        | 2           | 3  | 4  |
 | ------------- |:-------------:| :-------------:|-----:|
 | Mario Padilla      | Efren Lopez Morales | Ahn | Vipanchi| 
 
