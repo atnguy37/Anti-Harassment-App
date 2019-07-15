@@ -1,5 +1,5 @@
 # CSE535_MobileComputing
-| Project Members        ||||
-| ------------- ||||
+| Project Members        |
+| ------------- |-------------|-------------|-------------|
 | Mario Padilla      | Efren Lopez Morales   | Ahn   | Vipanchi   |
 
