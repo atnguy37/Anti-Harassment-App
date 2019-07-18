@@ -1,16 +1,19 @@
 package com.example.assignment1;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.RadioButton;
+import android.widget.TextView;
 
-import java.util.Random;
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.Viewport;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
-import com.jjoe64.graphview.Viewport;
+
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
     private static final Random RANDOM = new Random();
@@ -18,8 +21,17 @@ public class MainActivity extends AppCompatActivity {
 //    private LineGraphSeries<DataPoint> seriesStop;
     private int lastX = 0;
     private boolean buttonStartStop = false;
-    private Button mButtonStartStop;
+    private boolean buttonStart = true;
+
 //    private Button mButtonReset;
+
+    private Button stopButton;
+    private Button startButton;
+    private TextView patientID;
+    private TextView patientName;
+    private TextView age;
+    private RadioButton female;
+    private RadioButton male;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,6 +40,13 @@ public class MainActivity extends AppCompatActivity {
         // we get graph view instance
         // get GraphView from activity_main.xml with ID
         GraphView graph = (GraphView) findViewById(R.id.graph);
+        stopButton = (Button) findViewById(R.id.button_stop);
+        patientID = (TextView) findViewById(R.id.patient_id);
+        patientName = (TextView) findViewById(R.id.patient_name);
+        age = (TextView) findViewById(R.id.patient_age);
+        female = (RadioButton) findViewById(R.id.radioButton_female);
+        male = (RadioButton) findViewById(R.id.radioButton_male);
+
         // data
         // Use LineGraphSeries from GraphView Library to add Data Point
         series = new LineGraphSeries<DataPoint>();
@@ -41,13 +60,31 @@ public class MainActivity extends AppCompatActivity {
 //        viewport.setScalable(true);
 
         //get Button Start Stop from ID getting from activity_main.xml
-        mButtonStartStop = findViewById(R.id.button_start_stop);
+        startButton = findViewById(R.id.button_start);
 //        mButtonReset = findViewById(R.id.button_reset);
         // set click function for button
-        mButtonStartStop.setOnClickListener(new View.OnClickListener() {
+        startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(buttonStartStop)
+                //startGraph();
+                buttonStartStop = true;
+                //If not included it will create mutliple startGraph (speed it up)
+                if(buttonStart) {
+                    buttonStart = false;
+                    startGraph();
+                }
+
+            }
+        });
+
+        stopButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                buttonStartStop = false;
+                buttonStart = true;
+                stopGraph();
+
+               /* if(buttonStartStop)
                     buttonStartStop = false;
                 else
                     buttonStartStop = true;
@@ -57,9 +94,10 @@ public class MainActivity extends AppCompatActivity {
                 }
                 else {
                     stopGraph();
-                }
+                }*/
             }
         });
+
     }
 
     @Override
@@ -107,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
         }).start();
 
 //        buttonStartStop = false;
-        mButtonStartStop.setText("Stop");
+        //mButtonStartStop.setText("Stop");
 //        mButtonReset.setVisibility(View.VISIBLE);
     }
 
@@ -123,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
 //        seriesStop = new LineGraphSeries<DataPoint>();
 //        graph.addSeries(seriesStop);
 
-        mButtonStartStop.setText("Start");
+        //mButtonStartStop.setText("Start");
 
 //        mButtonReset.setVisibility(View.INVISIBLE);
 

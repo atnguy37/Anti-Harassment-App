@@ -3,4 +3,11 @@
     <string name="hello_world">Hello world!</string>
     <string name="menu_settings">Settings</string>
     <string name="title_activity_main">MainActivity</string>
+    <string name="patient_id">Patient ID:</string>
+    <string name="patient_name">Patient Name:</string>
+    <string name="patient_age">Age:</string>
+    <string name="patient_sex">Sex</string>
+
+
 </resources>
+
