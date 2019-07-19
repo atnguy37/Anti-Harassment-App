@@ -107,8 +107,8 @@
             android:layout_width="wrap_content"
             android:layout_height="24dp"
             android:layout_below="@id/patient_name"
-            android:layout_marginLeft="69dp"
-            android:layout_marginTop="-67dp"
+            android:layout_marginLeft="53dp"
+            android:layout_marginTop="-66dp"
             android:layout_toRightOf="@id/patient_id"
             android:paddingRight="10dp"
             android:text="@string/patient_age"
@@ -121,8 +121,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_below="@id/patient_name"
-            android:layout_marginLeft="216dp"
-            android:layout_marginTop="-76dp"
+            android:layout_marginLeft="195dp"
+            android:layout_marginTop="-73dp"
             android:layout_toRightOf="@+id/label_patient_id"
             android:ems="6"
             android:inputType="text"
@@ -139,7 +139,7 @@
             android:layout_marginTop="9dp"
             android:layout_toRightOf="@id/patient_name"
             android:orientation="horizontal"
-            android:paddingLeft="25dp"
+            android:paddingLeft="15dp"
 
             >
 
