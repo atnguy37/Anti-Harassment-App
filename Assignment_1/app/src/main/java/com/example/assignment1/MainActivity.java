@@ -32,6 +32,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView age;
     private RadioButton female;
     private RadioButton male;
+    private static final String STATE_LASTX = "LastX";
+    private static final String STATE_START = "ButtonStartStop";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +62,12 @@ public class MainActivity extends AppCompatActivity {
 //        viewport.setScalable(true);
 
         //get Button Start Stop from ID getting from activity_main.xml
+        if (savedInstanceState != null) {
+//            System.out.println("Rotate and Restore");
+            lastX = savedInstanceState.getInt(STATE_LASTX, 0);
+            buttonStartStop = savedInstanceState.getBoolean(STATE_START, false);
+        }
+
         startButton = findViewById(R.id.button_start);
 //        mButtonReset = findViewById(R.id.button_reset);
         // set click function for button
@@ -97,6 +105,13 @@ public class MainActivity extends AppCompatActivity {
                 }*/
             }
         });
+
+        if(buttonStartStop) {
+            startGraph();
+        }
+        else {
+            stopGraph();
+        }
 
     }
 
@@ -165,5 +180,13 @@ public class MainActivity extends AppCompatActivity {
 
 //        mButtonReset.setVisibility(View.INVISIBLE);
 
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+//        System.out.println("Before Rotate: " + lastX);
+        outState.putInt(STATE_LASTX, lastX);
+        outState.putBoolean(STATE_START, buttonStartStop);
     }
 }
