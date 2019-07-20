@@ -70,7 +70,6 @@
             android:layout_toRightOf="@+id/label_patient_id"
             android:ems="6"
             android:inputType="text"
-            android:text="@string/patient_id"
             android:textSize="12sp" />
 
         <TextView
@@ -96,7 +95,6 @@
             android:layout_toRightOf="@+id/label_patient_name"
             android:ems="6"
             android:inputType="text"
-            android:text="@string/patient_name"
             android:textSize="12sp" />
 
         <TextView
@@ -122,7 +120,6 @@
             android:layout_toRightOf="@+id/label_patient_age"
             android:ems="6"
             android:inputType="text"
-            android:text="@string/patient_age"
             android:textSize="12dp" />
 
         <RadioGroup
