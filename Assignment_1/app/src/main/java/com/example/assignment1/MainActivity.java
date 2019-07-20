@@ -18,12 +18,11 @@ import java.util.Random;
 public class MainActivity extends AppCompatActivity {
     private static final Random RANDOM = new Random();
     private LineGraphSeries<DataPoint> series;
-//    private LineGraphSeries<DataPoint> seriesStop;
+
     private int lastX = 0;
     private boolean buttonStartStop = false;
     private boolean buttonStart = true;
 
-//    private Button mButtonReset;
 
     private Button stopButton;
     private Button startButton;
@@ -34,6 +33,12 @@ public class MainActivity extends AppCompatActivity {
     private RadioButton male;
     private static final String STATE_LASTX = "LastX";
     private static final String STATE_START = "ButtonStartStop";
+
+    /**
+     * Starts the application, the graph view and the rest of the UI components
+     * and lastly sets an on click listener for the stop and start buttons
+     * @param savedInstanceState
+     */
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,19 +63,18 @@ public class MainActivity extends AppCompatActivity {
         viewport.setYAxisBoundsManual(true);
         viewport.setMinY(0);
         viewport.setMaxY(2000);
-//        viewport.setScrollable(true);
-//        viewport.setScalable(true);
 
         //get Button Start Stop from ID getting from activity_main.xml
         if (savedInstanceState != null) {
-//            System.out.println("Rotate and Restore");
             lastX = savedInstanceState.getInt(STATE_LASTX, 0);
             buttonStartStop = savedInstanceState.getBoolean(STATE_START, false);
         }
 
         startButton = findViewById(R.id.button_start);
-//        mButtonReset = findViewById(R.id.button_reset);
+
         // set click function for button
+
+
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -92,17 +96,6 @@ public class MainActivity extends AppCompatActivity {
                 buttonStart = true;
                 stopGraph();
 
-               /* if(buttonStartStop)
-                    buttonStartStop = false;
-                else
-                    buttonStartStop = true;
-
-                if(buttonStartStop) {
-                    startGraph();
-                }
-                else {
-                    stopGraph();
-                }*/
             }
         });
 
@@ -120,17 +113,18 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
     }
 
-    // add random data to graph
+    // Randomly adds a max of 10 points of the viewpoint. The graph is scrolled to the end.
     private void addEntry() {
         // here, we choose to display max 10 points on the viewport and we scroll to end
         series.appendData(new DataPoint(lastX++, RANDOM.nextDouble() * 1000d), false, 10);
-        /* @param dataPoint values the values must be in the correct order!
-                *                  x-value has to be ASC. First the lowest x value and at least the highest x value.
-     * @param scrollToEnd true => graphview will scroll to the end (maxX) - I do not know why It only work when setting scrollToEnd: False
-                * @param maxDataPoints if max data count is reached, the oldest data
-     *                      value will be lost to avoid memory leaks
-     * @param silent    set true to avoid rerender the graph */
+
     }
+
+    /**
+     * It adds the series of points to the graph and created a new threat
+     * We wrote one threat that adds entries to the graph and another threat that changes the UI
+     * elements, it keeps running until the stop button is clicked.
+     */
 
     private void startGraph() {
         GraphView graph = (GraphView) findViewById(R.id.graph);
@@ -159,26 +153,17 @@ public class MainActivity extends AppCompatActivity {
             }
         }).start();
 
-//        buttonStartStop = false;
-        //mButtonStartStop.setText("Stop");
-//        mButtonReset.setVisibility(View.VISIBLE);
     }
 
+    /**
+     * Graphs the graph view component and then clears the graph.
+     */
 
     private void stopGraph() {
-//        graph.removeSeries(series);
-        // get GraphView from activity_main.xml with ID
+
         GraphView graph = (GraphView) findViewById(R.id.graph);
-//        System.out.println(series.getDataPointsRadius());
-//        graph.removeSeries(series);
+
         graph.removeAllSeries();
-//        // data
-//        seriesStop = new LineGraphSeries<DataPoint>();
-//        graph.addSeries(seriesStop);
-
-        //mButtonStartStop.setText("Start");
-
-//        mButtonReset.setVisibility(View.INVISIBLE);
 
     }
 
