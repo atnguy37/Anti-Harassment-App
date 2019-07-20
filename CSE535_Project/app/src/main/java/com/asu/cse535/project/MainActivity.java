@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
 
         //Setting the content view to activity_main.xml
+        // comment
         setContentView(R.layout.activity_main);
 
 
