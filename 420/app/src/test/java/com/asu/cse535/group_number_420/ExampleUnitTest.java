@@ -1,4 +1,4 @@
-package com.example.assignment1;
+package com.asu.cse535.group_number_420;
 
 import org.junit.Test;
 

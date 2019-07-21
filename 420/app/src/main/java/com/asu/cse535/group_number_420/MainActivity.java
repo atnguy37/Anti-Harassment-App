@@ -1,4 +1,4 @@
-package com.example.assignment1;
+package com.asu.cse535.group_number_420;
 
 import android.os.Bundle;
 import android.view.View;
@@ -12,6 +12,7 @@ import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.Viewport;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
+
 
 import java.util.Random;
 
@@ -129,6 +130,7 @@ public class MainActivity extends AppCompatActivity {
     private void startGraph() {
         GraphView graph = (GraphView) findViewById(R.id.graph);
         graph.addSeries(series);
+
         new Thread(new Runnable() {
 
             @Override

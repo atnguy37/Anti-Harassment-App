@@ -4,8 +4,8 @@ android {
     compileSdkVersion 29
     buildToolsVersion "29.0.1"
     defaultConfig {
-        applicationId "com.example.assignment1"
-        minSdkVersion 15
+        applicationId "com.asu.cse535.group_number_420"
+        minSdkVersion 16
         targetSdkVersion 29
         versionCode 1
         versionName "1.0"

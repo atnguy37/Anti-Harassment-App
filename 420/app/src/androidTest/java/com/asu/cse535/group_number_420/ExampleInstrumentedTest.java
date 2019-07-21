@@ -1,4 +1,4 @@
-package com.example.assignment1;
+package com.asu.cse535.group_number_420;
 
 import android.content.Context;
 
@@ -22,6 +22,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getTargetContext();
 
-        assertEquals("com.example.helloword", appContext.getPackageName());
+        assertEquals("com.asu.cse535.group_number_420", appContext.getPackageName());
     }
 }
