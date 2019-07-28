@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -14,9 +15,16 @@ import androidx.fragment.app.Fragment;
 
 import com.google.firebase.auth.FirebaseUser;
 
+/**
+ * @author mario padilla, efren lopez
+ */
 public class HomeFragment extends Fragment {
 
     private Button alertButton;
+    LinearLayout layout1;
+    LinearLayout layout2;
+    LinearLayout layout3;
+    LinearLayout layout4;
 
     @Nullable
     @Override
@@ -27,7 +35,11 @@ public class HomeFragment extends Fragment {
 
         TextView test = (TextView) view.findViewById(R.id.welcome);
 
-        alertButton = (Button) view.findViewById(R.id.btn);
+        alertButton = (Button) view.findViewById(R.id.alert_btn);
+        layout1 = (LinearLayout) view.findViewById(R.id.layout1);
+        layout2 = (LinearLayout) view.findViewById(R.id.layout2);
+        layout3 = (LinearLayout) view.findViewById(R.id.layout3);
+        layout4 = (LinearLayout) view.findViewById(R.id.layout4);
 
         alertButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -46,10 +58,53 @@ public class HomeFragment extends Fragment {
 
         if(AreYouSignInAccount != null) {
             test.setText("Welcome " + AreYouSignInAccount.getDisplayName());
+            alertButton.setVisibility(view.VISIBLE);
+            layout1.setVisibility(view.VISIBLE);
+            layout2.setVisibility(view.VISIBLE);
+            layout3.setVisibility(view.VISIBLE);
+            layout4.setVisibility(view.VISIBLE);
 
 
         }
 
+
+        layout1.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+
+                // Code here executes on main thread after user presses button
+                getActivity().getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new MyContactFragment()).commit();
+
+                // Replace
+                Toast.makeText( getActivity(),"Emergency contact", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        layout2.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // Code here executes on main thread after user presses button
+
+                // Replace
+                Toast.makeText( getActivity(),"Cancel", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        layout3.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // Code here executes on main thread after user presses button
+
+                // Replace
+                Toast.makeText( getActivity(),"View Safe Zone", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        layout4.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // Code here executes on main thread after user presses button
+
+                // Replace
+                Toast.makeText( getActivity(),"View Unsafe Zone", Toast.LENGTH_SHORT).show();
+            }
+        });
         return view;
     }
 

@@ -11,12 +11,11 @@
             android:visible="true"
             />
         <item
-            android:id="@+id/nav_contacts"
+            android:id="@+id/nav_my_contacts"
             android:icon="@drawable/ic_account_box_black_24dp"
-            android:title="@string/menu_contacts"
+            android:title="@string/menu_my_contacts"
             android:visible="false"
             />
-
     </group>
 
         <group android:checkableBehavior="single">

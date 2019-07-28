@@ -7,6 +7,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -27,6 +28,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.AuthCredential;
@@ -34,11 +37,22 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @author mariogp18, anh nguyen
+ */
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
     private static final String TAG = "";
+    private User user;
     int RC_SIGN_IN = 0;
     private SignInButton signInButton;
     private GoogleSignInClient GoogleSignInClient;
@@ -46,10 +60,16 @@ public class MainActivity extends AppCompatActivity
     private GoogleSignInOptions gso;
     private FirebaseAuth mAuth;
     private FirebaseUser AreYouSignInAccount;
+    private  FirebaseFirestore FBDB;
+    FirebaseFirestore firebaseDB;
+
+    Button alert;
+    DocumentReference userContactsDocRef;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
 
         //Setting the content view to activity_main.xml
         // comment
@@ -75,19 +95,103 @@ public class MainActivity extends AppCompatActivity
         actionBarToggle.syncState();
 
         mAuth = FirebaseAuth.getInstance();
+        FBDB = initFirestore();
 
         if(savedInstanceState == null){
             getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new HomeFragment()).commit();
             navigationView.setCheckedItem(R.id.nav_home);
 
         }
+
+        addIDDocument();
+    }
+
+    public void addIDDocument(){
+        firebaseDB = initFirestore();
+        AreYouSignInAccount = getAreYouSignInAccount();
+
+        String UserID = AreYouSignInAccount.getUid();
+
+        userContactsDocRef = firebaseDB.collection("users").document(UserID);
+
+        Map<String, Object> id = new HashMap<>();
+        id.put("id", UserID);
+
+        userContactsDocRef
+                .set(id, SetOptions.merge())
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
+
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
+
+                    }
+                });
+
+
+        user = new User();
+
+        userContactsDocRef.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                if(documentSnapshot.exists()) {
+                    user = documentSnapshot.toObject(User.class);
+                    if(user.getEmergencyContacts() == null){
+                        Map<String, Object> contactsMap = new HashMap<>();
+                        //contactsMap.put(name, phoneNumber);
+
+                        Map<String, Object> emergencyContacts = new HashMap<>();
+                        emergencyContacts.put("EmergencyContacts", contactsMap);
+
+                        userContactsDocRef
+                                .set(emergencyContacts, SetOptions.merge())
+                                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    @Override
+                                    public void onSuccess(Void aVoid) {
+                                        Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
+
+                                    }
+                                })
+                                .addOnFailureListener(new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+                                        Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
+
+                                    }
+                                });
+                    }
+
+                } else {
+                    //User Exists
+                    Toast.makeText(getApplicationContext(), "EC structure Exists", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+
+            }
+        });
+
+
+
+    }
+    public FirebaseFirestore initFirestore() {
+        FirebaseFirestore firebaseDB = FirebaseFirestore.getInstance();
+        return firebaseDB;
     }
 
 
     public FirebaseUser getAreYouSignInAccount(){
-        AreYouSignInAccount = mAuth.getCurrentUser();
+        FirebaseUser signInAccount = mAuth.getCurrentUser();
 
-        return AreYouSignInAccount;
+        return signInAccount;
     }
 
    @Override
@@ -119,7 +223,7 @@ public class MainActivity extends AppCompatActivity
            navigationView.getMenu().findItem(R.id.nav_log_out).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_home).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(false);
-           navigationView.getMenu().findItem(R.id.nav_contacts).setVisible(true);
+           navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_share).setVisible(true);
 
        }
@@ -127,12 +231,13 @@ public class MainActivity extends AppCompatActivity
            navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_home).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_log_out).setVisible(false);
-           navigationView.getMenu().findItem(R.id.nav_contacts).setVisible(false);
+           navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(false);
            navigationView.getMenu().findItem(R.id.nav_share).setVisible(false);
 
        }
        super.onStart();
    }
+
 
 
     //Closes the left side navigation
@@ -183,13 +288,11 @@ public class MainActivity extends AppCompatActivity
 
         switch(id){
             case R.id.nav_home:
-                //Intent ContactsIntent = new Intent(this, SecondActivity.class);
-                //myIntent.putExtra("key", value); //Optional parameters
-                //this.startActivity(ContactsIntent);
                 getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new HomeFragment()).commit();
                 break;
-            case R.id.nav_contacts:
-                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new ContactFragment()).commit();
+            case R.id.nav_my_contacts:
+
+                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new MyContactFragment()).commit();
                 break;
             case R.id.nav_log_in:
 
@@ -309,6 +412,7 @@ public class MainActivity extends AppCompatActivity
         Intent signInIntent = new Intent(this, MainActivity.class);
         this.startActivity(signInIntent);
     }
+
 
 }
 
