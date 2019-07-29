@@ -1,6 +1,11 @@
 package com.asu.cse535.project;
 
+import android.app.Dialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -13,17 +18,23 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
+import com.asu.cse535.project.maps.MapFragment;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -35,10 +46,14 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 
+import static com.asu.cse535.project.Constant.ERROR_DIALOG_REQUEST;
+import static com.asu.cse535.project.Constant.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
+import static com.asu.cse535.project.Constant.PERMISSIONS_REQUEST_ENABLE_GPS;
+
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
-    private static final String TAG = "";
+    private static final String TAG = MainActivity.class.getSimpleName();
     int RC_SIGN_IN = 0;
     private SignInButton signInButton;
     private GoogleSignInClient GoogleSignInClient;
@@ -46,6 +61,10 @@ public class MainActivity extends AppCompatActivity
     private GoogleSignInOptions gso;
     private FirebaseAuth mAuth;
     private FirebaseUser AreYouSignInAccount;
+    private boolean mLocationPermissionGranted = false;
+
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,19 +95,116 @@ public class MainActivity extends AppCompatActivity
 
         mAuth = FirebaseAuth.getInstance();
 
-        if(savedInstanceState == null){
+        if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new HomeFragment()).commit();
             navigationView.setCheckedItem(R.id.nav_home);
 
         }
+
+
+
     }
 
 
-    public FirebaseUser getAreYouSignInAccount(){
+    public FirebaseUser getAreYouSignInAccount() {
         AreYouSignInAccount = mAuth.getCurrentUser();
 
         return AreYouSignInAccount;
     }
+
+    private boolean checkMapServices() {
+        if (isServicesOK()) {
+            if (isMapsEnabled()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+
+    private void buildAlertMessageNoGps() {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("This application requires GPS to work properly, do you want to enable it?")
+                .setCancelable(false)
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        Intent enableGpsIntent = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                        startActivityForResult(enableGpsIntent, PERMISSIONS_REQUEST_ENABLE_GPS);
+                    }
+                });
+        final AlertDialog alert = builder.create();
+        alert.show();
+    }
+
+    public boolean isMapsEnabled(){
+        final LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
+
+        if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
+            buildAlertMessageNoGps();
+            return false;
+        }
+        return true;
+    }
+
+    private void getLocationPermission() {
+        /*
+         * Request location permission, so that we can get the location of the
+         * device. The result of the permission request is handled by a callback,
+         * onRequestPermissionsResult.
+         */
+        if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
+                android.Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            mLocationPermissionGranted = true;
+            //getChatrooms();
+        } else {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                    PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
+        }
+    }
+
+    public boolean isServicesOK(){
+        Log.d(TAG, "isServicesOK: checking google services version");
+
+        int available = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(MainActivity.this);
+
+        if(available == ConnectionResult.SUCCESS){
+            //everything is fine and the user can make map requests
+            Log.d(TAG, "isServicesOK: Google Play Services is working");
+            System.out.println("isServicesOK: Google Play Services is working");
+            return true;
+        }
+        else if(GoogleApiAvailability.getInstance().isUserResolvableError(available)){
+            //an error occured but we can resolve it
+            Log.d(TAG, "isServicesOK: an error occured but we can fix it");
+            Dialog dialog = GoogleApiAvailability.getInstance().getErrorDialog(MainActivity.this, available, ERROR_DIALOG_REQUEST);
+            dialog.show();
+        }else{
+            Toast.makeText(this, "You can't make map requests", Toast.LENGTH_SHORT).show();
+        }
+        return false;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String permissions[],
+                                           @NonNull int[] grantResults) {
+        mLocationPermissionGranted = false;
+        switch (requestCode) {
+            case PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    mLocationPermissionGranted = true;
+                    Log.d(TAG, "onRequestPermissionsResult: Everything is fine");
+                    System.out.println("onRequestPermissionsResult: Everything is fine");
+                }
+            }
+        }
+    }
+
 
    @Override
     protected void onStart(){
@@ -112,7 +228,7 @@ public class MainActivity extends AppCompatActivity
                nav_header_subtitle.setText(personEmail);
            }
            if(personImage != null){
-               Glide.with(this).load(personImage).fitCenter().apply(new RequestOptions().override(108, 108)).placeholder(R.drawable.ic_launcher_foreground).into(nav_imageView);
+               Glide.with(this).load(personImage).fitCenter().apply(new RequestOptions().override(108, 108)).placeholder(R.drawable.ic_maps).into(nav_imageView);
            }
 
 
@@ -121,6 +237,7 @@ public class MainActivity extends AppCompatActivity
            navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(false);
            navigationView.getMenu().findItem(R.id.nav_contacts).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_share).setVisible(true);
+           navigationView.getMenu().findItem(R.id.nav_map).setVisible(true);
 
        }
        else{
@@ -129,10 +246,25 @@ public class MainActivity extends AppCompatActivity
            navigationView.getMenu().findItem(R.id.nav_log_out).setVisible(false);
            navigationView.getMenu().findItem(R.id.nav_contacts).setVisible(false);
            navigationView.getMenu().findItem(R.id.nav_share).setVisible(false);
+           navigationView.getMenu().findItem(R.id.nav_map).setVisible(true);
 
        }
        super.onStart();
    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(checkMapServices()){
+            if(mLocationPermissionGranted){
+                //getChatrooms();
+                Log.d(TAG, "onActivityResult: get Location Permission.");
+            }
+            else{
+                getLocationPermission();
+            }
+        }
+    }
 
 
     //Closes the left side navigation
@@ -237,6 +369,12 @@ public class MainActivity extends AppCompatActivity
                 Toast.makeText(this, "Share", Toast.LENGTH_SHORT).show();
 
                 break;
+            case R.id.nav_map:
+                //Intent ContactsIntent = new Intent(this, SecondActivity.class);
+                //myIntent.putExtra("key", value); //Optional parameters
+                //this.startActivity(ContactsIntent);
+                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new MapFragment()).commit();
+                break;
         }
 
 
@@ -278,6 +416,16 @@ public class MainActivity extends AppCompatActivity
                 // Please refer to the GoogleSignInStatusCodes class reference for more information.
                 Log.w(TAG, "signInResult:failed code=" + e.getStatusCode());
                 firebaseSignInWithGoogleFunction(null);
+            }
+        }
+
+        else if (requestCode == PERMISSIONS_REQUEST_ENABLE_GPS) {
+            if(mLocationPermissionGranted){
+                //
+                Log.d(TAG, "onActivityResult: get Location Permission.");
+            }
+            else{
+                getLocationPermission();
             }
         }
     }

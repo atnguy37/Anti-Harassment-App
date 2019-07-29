@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">Harassment Alert app</string>
+    <string name="google_maps_api_key">AIzaSyD7F-k0FXxv93lB3fzMBWG6bqhP4f8572Q</string>
     <string name="navigation_open_drawer">Open navigation drawer</string>
     <string name="navigation_close_drawer">Close navigation drawer</string>
     <string name="nav_header_title">Placeholder Name</string>
@@ -13,6 +14,7 @@
     <string name="menu_share">Share</string>
     <string name="menu_log_out">Log out</string>
     <string name="menu_log_in">Log in</string>
+    <string name="maps">Maps</string>
 
     <string name = "client_id">786077791064-r1eokqbg8kqb3p8no1nnmn4n144jaj3o.apps.googleusercontent.com</string>
 
