@@ -4,36 +4,131 @@
     android:background="@android:color/white"
     >
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:text = "Home Page"
-        android:textSize="30sp"
-        android:layout_centerInParent="true"
 
-        />
+
     <TextView
         android:id="@+id/welcome"
         android:layout_alignParentTop="true"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Welcome. Please log in"
-        android:textSize="30sp"
-        android:paddingTop="50sp"
+        android:textSize="25sp"
         android:layout_centerInParent="true"
         />
 
-   
 
     <Button
-        android:id="@+id/btn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Circular Shape"
-        android:layout_centerInParent="true"
+        android:id="@+id/alert_btn"
+        android:layout_width="183dp"
+        android:layout_height="186dp"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="40dp"
         android:background="@drawable/big_red_cicle"
+        android:text="ALERT!"
         android:textColor="#fff"
-        />
+        android:textSize="50dp"
+        android:visibility="gone" />
 
+    <LinearLayout
+        android:id="@+id/layout1"
+        android:layout_width="156dp"
+        android:layout_height="135dp"
+        android:layout_below="@id/alert_btn"
+        android:layout_marginTop="10dp"
+        android:layout_marginRight="35dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/contact_image"
+            android:layout_width="150dp"
+            android:layout_height="104dp"
+            android:src="@drawable/ic_perm_contact_calendar_black_24dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Emergency Contacts"
+            android:textSize="15dp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layout2"
+        android:layout_width="152dp"
+        android:layout_height="129dp"
+        android:layout_below="@id/alert_btn"
+        android:layout_marginLeft="20dp"
+        android:layout_marginTop="10dp"
+        android:layout_toRightOf="@id/layout1"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/cancel_image"
+            android:layout_width="150dp"
+            android:layout_height="104dp"
+            android:src="@drawable/ic_cancel_black_24dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Cancel"
+            android:textSize="15dp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+
+    <LinearLayout
+        android:id="@+id/layout3"
+        android:layout_width="161dp"
+        android:layout_height="129dp"
+        android:layout_below="@id/layout1"
+        android:layout_marginTop="10dp"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/safe_zone"
+            android:layout_width="150dp"
+            android:layout_height="104dp"
+            android:src="@drawable/ic_map_black_24dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="View Safe Zone"
+            android:textSize="15dp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layout4"
+        android:layout_width="154dp"
+        android:layout_height="133dp"
+        android:layout_below="@id/layout2"
+        android:layout_marginLeft="45dp"
+        android:layout_marginTop="10dp"
+        android:layout_toRightOf="@id/layout3"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/unsafe_zone"
+            android:layout_width="150dp"
+            android:layout_height="104dp"
+            android:src="@drawable/ic_warning_black_24dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="View Unsafe Zone"
+            android:textSize="15dp"
+            android:textStyle="bold" />
+    </LinearLayout>
 </RelativeLayout>

@@ -5,13 +5,20 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.LocationManager;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -38,6 +45,8 @@ import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.AuthCredential;
@@ -45,14 +54,25 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 
 import static com.asu.cse535.project.Constant.ERROR_DIALOG_REQUEST;
 import static com.asu.cse535.project.Constant.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
 import static com.asu.cse535.project.Constant.PERMISSIONS_REQUEST_ENABLE_GPS;
 
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @author mariogp18, anh nguyen
+ */
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
+    private User user;
     private static final String TAG = MainActivity.class.getSimpleName();
     int RC_SIGN_IN = 0;
     private SignInButton signInButton;
@@ -61,14 +81,35 @@ public class MainActivity extends AppCompatActivity
     private GoogleSignInOptions gso;
     private FirebaseAuth mAuth;
     private FirebaseUser AreYouSignInAccount;
-    private boolean mLocationPermissionGranted = false;
+    private  FirebaseFirestore FBDB;
+    FirebaseFirestore firebaseDB;
 
+    Button alert;
+    DocumentReference userContactsDocRef;
+    public boolean mLocationPermissionGranted = false;
+
+    // Shaking Alarm
+    private SensorManager sm;
+    private float acelVal; // current acceleration including gravity
+    private float acelLast; // last acceleration including gravity
+    private float shake; // acceleration apart from gravity
+    private boolean shaking = false;
+    private boolean wait = false;
 
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        setContentView(R.layout.activity_main);
+
+        //Shaking Alarm
+        sm = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        sm.registerListener(sensorListener, sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
+        shake = 0.00f;
+        acelVal = SensorManager.GRAVITY_EARTH;
+        acelLast = SensorManager.GRAVITY_EARTH;
 
         //Setting the content view to activity_main.xml
         // comment
@@ -94,6 +135,7 @@ public class MainActivity extends AppCompatActivity
         actionBarToggle.syncState();
 
         mAuth = FirebaseAuth.getInstance();
+        FBDB = initFirestore();
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new HomeFragment()).commit();
@@ -101,15 +143,101 @@ public class MainActivity extends AppCompatActivity
 
         }
 
+        addIDDocument();
+    }
+
+    public void addIDDocument(){
+
+        AreYouSignInAccount = getAreYouSignInAccount();
+
+        if(AreYouSignInAccount != null) {
+            firebaseDB = initFirestore();
+            String UserID = AreYouSignInAccount.getUid();
+
+            userContactsDocRef = firebaseDB.collection("users").document(UserID);
+
+            Map<String, Object> id = new HashMap<>();
+            id.put("id", UserID);
+
+            userContactsDocRef
+                    .set(id, SetOptions.merge())
+                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
+
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
+
+                        }
+                    });
+
+
+            user = new User();
+
+            userContactsDocRef.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                @Override
+                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                    if(documentSnapshot.exists()) {
+                        user = documentSnapshot.toObject(User.class);
+                        if(user.getEmergencyContacts() == null){
+                            Map<String, Object> contactsMap = new HashMap<>();
+                            //contactsMap.put(name, phoneNumber);
+
+                            Map<String, Object> emergencyContacts = new HashMap<>();
+                            emergencyContacts.put("EmergencyContacts", contactsMap);
+
+                            userContactsDocRef
+                                    .set(emergencyContacts, SetOptions.merge())
+                                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        @Override
+                                        public void onSuccess(Void aVoid) {
+                                            Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
+
+                                        }
+                                    })
+                                    .addOnFailureListener(new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception e) {
+                                            Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
+
+                                        }
+                                    });
+                        }
+
+                    } else {
+                        //User Exists
+                        Toast.makeText(getApplicationContext(), "EC structure Exists", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+
+                }
+            });
+
+        }
+
+
 
 
     }
 
+    public FirebaseFirestore initFirestore() {
+        FirebaseFirestore firebaseDB = FirebaseFirestore.getInstance();
+        return firebaseDB;
+    }
 
-    public FirebaseUser getAreYouSignInAccount() {
-        AreYouSignInAccount = mAuth.getCurrentUser();
 
-        return AreYouSignInAccount;
+    public FirebaseUser getAreYouSignInAccount(){
+        FirebaseUser signInAccount = mAuth.getCurrentUser();
+
+        return signInAccount;
     }
 
     private boolean checkMapServices() {
@@ -228,14 +356,14 @@ public class MainActivity extends AppCompatActivity
                nav_header_subtitle.setText(personEmail);
            }
            if(personImage != null){
-               Glide.with(this).load(personImage).fitCenter().apply(new RequestOptions().override(108, 108)).placeholder(R.drawable.ic_maps).into(nav_imageView);
+               Glide.with(this).load(personImage).fitCenter().apply(new RequestOptions().override(108, 108)).placeholder(R.drawable.ic_launcher_foreground).into(nav_imageView);
            }
 
 
            navigationView.getMenu().findItem(R.id.nav_log_out).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_home).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(false);
-           navigationView.getMenu().findItem(R.id.nav_contacts).setVisible(true);
+           navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_share).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_map).setVisible(true);
 
@@ -244,9 +372,9 @@ public class MainActivity extends AppCompatActivity
            navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_home).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_log_out).setVisible(false);
-           navigationView.getMenu().findItem(R.id.nav_contacts).setVisible(false);
+           navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(false);
            navigationView.getMenu().findItem(R.id.nav_share).setVisible(false);
-           navigationView.getMenu().findItem(R.id.nav_map).setVisible(true);
+           navigationView.getMenu().findItem(R.id.nav_map).setVisible(false);
 
        }
        super.onStart();
@@ -315,13 +443,11 @@ public class MainActivity extends AppCompatActivity
 
         switch(id){
             case R.id.nav_home:
-                //Intent ContactsIntent = new Intent(this, SecondActivity.class);
-                //myIntent.putExtra("key", value); //Optional parameters
-                //this.startActivity(ContactsIntent);
                 getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new HomeFragment()).commit();
                 break;
-            case R.id.nav_contacts:
-                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new ContactFragment()).commit();
+            case R.id.nav_my_contacts:
+
+                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new MyContactFragment()).commit();
                 break;
             case R.id.nav_log_in:
 
@@ -458,5 +584,76 @@ public class MainActivity extends AppCompatActivity
         this.startActivity(signInIntent);
     }
 
-}
+    private final SensorEventListener sensorListener = new SensorEventListener()
 
+    {
+        @Override
+        public void onSensorChanged(SensorEvent sensorEvent) {
+            Sensor mySensor = sensorEvent.sensor;
+
+            if (mySensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+//                index++;
+                float x = sensorEvent.values[0];
+                float y = sensorEvent.values[1];
+                float z = sensorEvent.values[2];
+                acelLast = acelVal;
+                acelVal = (float) Math.sqrt((double) (x * x + y * y + z * z));
+
+                float delta = acelVal - acelLast;
+                shake = shake * 0.9f + delta; // perform low-cut filter
+                System.out.println("Shake: " + shake);
+                if ((shake > 10 || shake < -10)) {
+//                    Toast toast = Toast.makeText(getApplicationContext(), "DO NOT SHAKE ME", Toast.LENGTH_LONG);
+//                    toast.show();
+
+//                    System.out.println("Shake In: " + shaking);
+//                    System.out.println("Wait In: " + wait);
+                    shaking = true;
+                    if (!wait) {
+                        wait = true;
+                        makeSound();
+                    }
+
+//                System.out.println("DO NOT SHAKE ME");
+                } else
+                    shaking = false;
+            }
+//            try {
+//                TimeUnit.MILLISECONDS.sleep(200);
+//            }
+//            catch (Exception e) {
+//            e.printStackTrace();
+//            }
+        }
+        @Override
+        public void onAccuracyChanged(Sensor sensor,int accuracy) {
+        }
+    };
+
+    private void makeSound () {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(1000);
+//                    System.out.println("Shake: " + shaking);
+//                    System.out.println("Wait: " + wait);
+                    // we add 100 new entries
+                    if (wait && shaking) {
+                        Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+                        Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
+                        r.play();
+                        Thread.sleep(10000);
+                        wait = false;
+                        r.stop();
+
+                    }
+                    wait = false;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+
+}
