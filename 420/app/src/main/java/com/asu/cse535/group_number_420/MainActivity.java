@@ -1,19 +1,25 @@
 package com.asu.cse535.group_number_420;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.Viewport;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
-
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
@@ -24,16 +30,20 @@ public class MainActivity extends AppCompatActivity {
     private boolean buttonStartStop = false;
     private boolean buttonStart = true;
 
-
     private Button stopButton;
     private Button startButton;
     private TextView patientID;
     private TextView patientName;
-    private TextView age;
-    private RadioButton female;
-    private RadioButton male;
+    private TextView patientAge;
+    private RadioButton femaleButton;
+    private RadioButton maleButton;
     private static final String STATE_LASTX = "LastX";
     private static final String STATE_START = "ButtonStartStop";
+    RadioGroup radioGroup;
+    DBHelper dbHandler;
+    PersonInfo person;
+
+    public  static final int RequestPermissionCode_WRITE_EXTERNAL_STORAGE  = 1 ;
 
     /**
      * Starts the application, the graph view and the rest of the UI components
@@ -51,9 +61,10 @@ public class MainActivity extends AppCompatActivity {
         stopButton = (Button) findViewById(R.id.button_stop);
         patientID = (TextView) findViewById(R.id.patient_id);
         patientName = (TextView) findViewById(R.id.patient_name);
-        age = (TextView) findViewById(R.id.patient_age);
-        female = (RadioButton) findViewById(R.id.radioButton_female);
-        male = (RadioButton) findViewById(R.id.radioButton_male);
+        patientAge = (TextView) findViewById(R.id.patient_age);
+        femaleButton = (RadioButton) findViewById(R.id.radioButton_female);
+        maleButton = (RadioButton) findViewById(R.id.radioButton_male);
+        radioGroup = (RadioGroup) findViewById(R.id.radioButtonGroup);
 
         // data
         // Use LineGraphSeries from GraphView Library to add Data Point
@@ -73,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
 
         startButton = findViewById(R.id.button_start);
 
-        // set click function for button
+        EnableRuntimePermission();
 
 
         startButton.setOnClickListener(new View.OnClickListener() {
@@ -84,9 +95,9 @@ public class MainActivity extends AppCompatActivity {
                 //If not included it will create mutliple startGraph (speed it up)
                 if(buttonStart) {
                     buttonStart = false;
+                    CreateTable();
                     startGraph();
                 }
-
             }
         });
 
@@ -96,6 +107,8 @@ public class MainActivity extends AppCompatActivity {
                 buttonStartStop = false;
                 buttonStart = true;
                 stopGraph();
+                AddNewDBEntry();
+
 
             }
         });
@@ -106,6 +119,32 @@ public class MainActivity extends AppCompatActivity {
         else {
             stopGraph();
         }
+
+    }
+
+    private void CreateTable(){
+
+        String name = patientName.getText().toString();
+        String id = patientID.getText().toString();
+        String age = patientAge.getText().toString();
+        Button sexTypeButton;
+
+        int selectedId = radioGroup.getCheckedRadioButtonId();
+
+        // find the radiobutton by returned id
+        sexTypeButton = (RadioButton) findViewById(selectedId);
+        String sex = sexTypeButton.getText().toString();
+
+        person = new PersonInfo(name, age, sex, id);
+
+        dbHandler = new DBHelper(MainActivity.this, person);
+    }
+    //private static final String TAG = "MyActivity";
+
+    private void AddNewDBEntry(){
+        dbHandler.insertNewData("1","2","3");
+        ArrayList<HashMap<String, String>> results = dbHandler.GetDataFromCurrentPatient();
+
 
     }
 
@@ -167,7 +206,10 @@ public class MainActivity extends AppCompatActivity {
 
         graph.removeAllSeries();
 
+
+
     }
+
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
@@ -176,4 +218,36 @@ public class MainActivity extends AppCompatActivity {
         outState.putInt(STATE_LASTX, lastX);
         outState.putBoolean(STATE_START, buttonStartStop);
     }
+
+
+    public void EnableRuntimePermission(){
+
+        if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE)){
+            Toast.makeText(MainActivity.this,"WRITE_EXTERNAL_STORAGE permission allows us to Access CONTACTS app", Toast.LENGTH_LONG).show();
+
+        }
+        else {
+            ActivityCompat.requestPermissions(MainActivity.this,new String[]{
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE}, RequestPermissionCode_WRITE_EXTERNAL_STORAGE);
+        }
+
+    }
+
+
+
+    @Override
+    public void onRequestPermissionsResult(int RequestCode, String per[], int[] PResult) {
+        switch (RequestCode) {
+            case RequestPermissionCode_WRITE_EXTERNAL_STORAGE:
+                if (PResult.length > 0 && PResult[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(MainActivity.this, "Permission Granted _ Write_External.", Toast.LENGTH_LONG).show();
+
+                } else {
+                    Toast.makeText(MainActivity.this, "Permission Canceled.", Toast.LENGTH_LONG).show();
+                }
+                break;
+        }
+    }
+
 }

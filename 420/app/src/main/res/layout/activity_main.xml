@@ -95,6 +95,7 @@
             android:layout_toRightOf="@+id/label_patient_name"
             android:ems="6"
             android:inputType="text"
+            android:text="name1"
             android:textSize="12sp" />
 
         <TextView
@@ -120,6 +121,8 @@
             android:layout_toRightOf="@+id/label_patient_age"
             android:ems="6"
             android:inputType="text"
+            android:selectAllOnFocus="true"
+            android:text="21"
             android:textSize="12dp" />
 
         <RadioGroup
