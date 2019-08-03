@@ -8,8 +8,8 @@
 
     <Button
         android:id="@+id/button_start"
-        android:layout_width="75dp"
-        android:layout_height="35dp"
+        android:layout_width="65dp"
+        android:layout_height="27dp"
         android:layout_marginStart="1dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="1dp"
@@ -18,15 +18,16 @@
         android:text="Run"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.818"
+        app:layout_constraintHorizontal_bias="0.856"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.038" />
+        app:layout_constraintVertical_bias="0.0" />
 
     <Button
         android:id="@+id/button_stop"
-        android:layout_width="75dp"
-        android:layout_height="35dp"
+        android:layout_width="65dp"
+        android:layout_height="27dp"
+        android:layout_alignParentTop="true"
         android:layout_marginStart="1dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="1dp"
@@ -35,17 +36,16 @@
         android:text="Stop"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.977"
+        app:layout_constraintHorizontal_bias="0.984"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.038" />
+        app:layout_constraintVertical_bias="0.0" />
 
     <RelativeLayout
         android:id="@+id/linearLayout"
         android:layout_width="match_parent"
-        android:layout_height="80dp"
+        android:layout_height="50dp"
         android:background="@color/gray"
-        app:layout_constraintBottom_toTopOf="@+id/graph"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
@@ -56,7 +56,7 @@
             android:layout_width="wrap_content"
             android:layout_height="24dp"
             android:layout_marginTop="8dp"
-            android:paddingLeft="25dp"
+            android:paddingLeft="5dp"
             android:paddingRight="10dp"
             android:text="@string/patient_id"
             android:textColor="@android:color/black"
@@ -65,9 +65,9 @@
 
         <EditText
             android:id="@+id/patient_id"
-            android:layout_width="wrap_content"
+            android:layout_width="56dp"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="21dp"
+            android:layout_marginLeft="-3dp"
             android:layout_marginTop="0dp"
             android:layout_toRightOf="@+id/label_patient_id"
             android:ems="6"
@@ -80,8 +80,8 @@
             android:layout_width="wrap_content"
             android:layout_height="24dp"
             android:layout_below="@id/patient_id"
-            android:layout_marginLeft="-206dp"
-            android:layout_marginTop="12dp"
+            android:layout_marginLeft="-2dp"
+            android:layout_marginTop="-31dp"
             android:layout_toRightOf="@id/patient_id"
             android:paddingLeft="5dp"
             android:paddingRight="10dp"
@@ -92,11 +92,11 @@
 
         <EditText
             android:id="@+id/patient_name"
-            android:layout_width="wrap_content"
+            android:layout_width="60dp"
             android:layout_height="wrap_content"
             android:layout_below="@id/patient_id"
-            android:layout_marginLeft="14dp"
-            android:layout_marginTop="1dp"
+            android:layout_marginLeft="-8dp"
+            android:layout_marginTop="-37dp"
             android:layout_toRightOf="@+id/label_patient_name"
             android:ems="6"
             android:inputType="text"
@@ -106,9 +106,9 @@
             android:id="@+id/label_patient_age"
             android:layout_width="wrap_content"
             android:layout_height="24dp"
-            android:layout_below="@id/patient_name"
-            android:layout_marginLeft="53dp"
-            android:layout_marginTop="-66dp"
+            android:layout_alignTop="@+id/label_patient_name"
+            android:layout_marginLeft="152dp"
+            android:layout_marginTop="-2dp"
             android:layout_toRightOf="@id/patient_id"
             android:paddingRight="10dp"
             android:text="@string/patient_age"
@@ -118,11 +118,10 @@
 
         <EditText
             android:id="@+id/patient_age"
-            android:layout_width="wrap_content"
+            android:layout_width="35dp"
             android:layout_height="wrap_content"
-            android:layout_below="@id/patient_name"
-            android:layout_marginLeft="195dp"
-            android:layout_marginTop="-73dp"
+            android:layout_alignTop="@+id/patient_name"
+            android:layout_marginLeft="244dp"
             android:layout_toRightOf="@+id/label_patient_id"
             android:ems="6"
             android:inputType="text"
@@ -134,11 +133,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
 
-            android:layout_below="@id/label_patient_age"
-            android:layout_marginLeft="45dp"
-            android:layout_marginTop="9dp"
+            android:layout_marginLeft="73dp"
+            android:layout_marginTop="2dp"
             android:layout_toRightOf="@id/patient_name"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             android:paddingLeft="15dp"
 
             >
@@ -146,20 +144,21 @@
             <TextView
                 android:id="@+id/label_sex"
                 android:layout_width="wrap_content"
-                android:layout_height="24dp"
-                android:layout_marginTop="1dp"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/radioButtonGroup"
                 android:text="@string/patient_sex"
                 android:textColor="@android:color/black"
-                android:textSize="14sp"
+                android:textSize="10sp"
                 app:layout_constraintTop_toTopOf="parent" />
 
             <RadioButton
                 android:id="@+id/radioButton_female"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_alignStart="@+id/radioButtonGroup"
                 android:layout_weight="1"
                 android:text="Female"
-                android:textSize="12sp" />
+                android:textSize="10sp" />
 
             <RadioButton
                 android:id="@+id/radioButton_male"
@@ -167,7 +166,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Male"
-                android:textSize="12sp" />
+                android:textSize="10sp" />
 
         </RadioGroup>
     </RelativeLayout>
@@ -187,13 +186,31 @@
     <!--android:text="reset"-->
     <!--android:visibility="invisible"-->
     <!--tools:visibility="visible" />-->
-
     <com.jjoe64.graphview.GraphView
         android:id="@+id/graph"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="80dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/linearLayout" />
+        app:layout_constraintTop_toBottomOf="@+id/linearLayout"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <com.jjoe64.graphview.GraphView
+        android:id="@+id/graph_2"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/graph"
+        app:layout_constraintVertical_bias="0.056" />
+
+    <com.jjoe64.graphview.GraphView
+        android:id="@+id/graph_3"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/graph"
+        app:layout_constraintVertical_bias="1.0" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
