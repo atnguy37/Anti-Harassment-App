@@ -30,6 +30,7 @@ public class DBHelper {
     private static final String ZVALUES = "zvalues";
     private static final String IGNORE_COL = "ignore_col";
 
+
     private SQLiteDatabase sqlDB;
 
     public DBHelper(Context context, PersonInfo person){
@@ -51,15 +52,12 @@ public class DBHelper {
 
             sqlDB.beginTransaction();
             try {
-                //I DON"T KNOW WHY BUT IT CRASHES IF I DON"T ADD THE LAST COLUMN.
-                //WILL WILL NOT USE IT BUT FOR SOME REASON IT NEEDS A BUFFER COL AT THE END!!!!
                 String CREATE_TABLE = "CREATE TABLE " + tableName + "("
                         + KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                         + TIME_STAMP + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
                         + XVALUES + " TEXT,"
                         + YVALUES + " TEXT,"
-                        + ZVALUES + " TEXT,"
-                        + IGNORE_COL + " TEXT);";
+                        + ZVALUES + " TEXT);";
                 sqlDB.execSQL(CREATE_TABLE);
 
 
@@ -83,7 +81,7 @@ public class DBHelper {
 
 
 
-    public void insertNewData(String xvalue, String yvalue, String zvalue){
+    public void insertNewData(String xvalue, String yvalue, String zvalue, String timestamp){
 
         sqlDB = SQLiteDatabase.openOrCreateDatabase(Environment.getExternalStorageDirectory()+"/Android/Data/CSE535_ASSIGNMENT2", null);
         File sd = Environment.getExternalStorageDirectory();
@@ -93,14 +91,14 @@ public class DBHelper {
 //            sqlDB.setTransactionSuccessful(); //commit your changes
             ContentValues contentValues = new ContentValues();
 
+            //contentValues.put(TIME_STAMP, timestamp);
             contentValues.put(XVALUES, xvalue);
             contentValues.put(YVALUES, yvalue);
             contentValues.put(ZVALUES, zvalue);
-            contentValues.put(IGNORE_COL, "");
 
             long result = sqlDB.insertOrThrow(tableName, null, contentValues);
 
-            Toast.makeText(context,"Data added", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(context,"Data added", Toast.LENGTH_SHORT).show();
 
         }
         catch (SQLiteException e) {
@@ -118,7 +116,7 @@ public class DBHelper {
         sqlDB = SQLiteDatabase.openOrCreateDatabase(Environment.getExternalStorageDirectory()+"/Android/Data/CSE535_ASSIGNMENT2", null);
 
         ArrayList<HashMap<String, String>> userList = new ArrayList<>();
-        String query = "SELECT xvalues, yvalues, zvalues, ignore_col designation FROM " + tableName;
+        String query = "SELECT xvalues, yvalues, zvalues FROM " + tableName;
         Cursor cursor = sqlDB.rawQuery(query,null);
         Log.i(TAG,"before cursor ");
 
@@ -133,7 +131,7 @@ public class DBHelper {
 
             userList.add(user);
         }
-        Toast.makeText(context,"Data returned", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(context,"Data returned", Toast.LENGTH_SHORT).show();
 
         return userList;
     }
@@ -142,7 +140,7 @@ public class DBHelper {
         sqlDB = SQLiteDatabase.openOrCreateDatabase(Environment.getExternalStorageDirectory()+"/Android/Data/CSE535_ASSIGNMENT2", null);
 
         ArrayList<HashMap<String, String>> userList = new ArrayList<>();
-        String query = "SELECT xvalues, yvalues, zvalues, ignore_col designation FROM " + table_name;
+        String query = "SELECT xvalues, yvalues, zvalues FROM " + table_name;
         Cursor cursor = sqlDB.rawQuery(query,null);
         Log.i(TAG,"before cursor ");
 
@@ -157,7 +155,7 @@ public class DBHelper {
 
             userList.add(user);
         }
-        Toast.makeText(context,"Data returned", Toast.LENGTH_SHORT).show();
+        //Toast.makeText(context,"Data returned", Toast.LENGTH_SHORT).show();
 
         return userList;
     }

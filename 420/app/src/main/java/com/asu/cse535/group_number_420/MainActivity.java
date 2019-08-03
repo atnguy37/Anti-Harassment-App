@@ -1,8 +1,15 @@
 package com.asu.cse535.group_number_420;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.RadioButton;
@@ -18,17 +25,22 @@ import com.jjoe64.graphview.Viewport;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Random;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SensorEventListener {
     private static final Random RANDOM = new Random();
-    private LineGraphSeries<DataPoint> series;
 
+    String dateFormat;
     private int lastX = 0;
+    private int lastY = 0;
+    private int lastZ = 0;
+
     private boolean buttonStartStop = false;
     private boolean buttonStart = true;
+    private boolean checkSensor = false;
+    private boolean datapointExist = false;
 
     private Button stopButton;
     private Button startButton;
@@ -38,18 +50,35 @@ public class MainActivity extends AppCompatActivity {
     private RadioButton femaleButton;
     private RadioButton maleButton;
     private static final String STATE_LASTX = "LastX";
+    private static final String STATE_LASTY = "LastY";
+    private static final String STATE_LASTZ = "LastZ";
+
     private static final String STATE_START = "ButtonStartStop";
+
     RadioGroup radioGroup;
     DBHelper dbHandler;
     PersonInfo person;
+    private SensorManager sensorManager;
+    Sensor accelerometer;
+    long tstamp;
+
+
+    private final static long ACC_CHECK_INTERVAL = 1000;
+    private long lastAccCheck;
+    float x;
+    float y;
+    float z;
+
+    String TAG;
 
     public  static final int RequestPermissionCode_WRITE_EXTERNAL_STORAGE  = 1 ;
 
-    /**
-     * Starts the application, the graph view and the rest of the UI components
-     * and lastly sets an on click listener for the stop and start buttons
-     * @param savedInstanceState
-     */
+    GraphView graph;
+
+    private LineGraphSeries<DataPoint> series;
+    private LineGraphSeries<DataPoint> series_y;
+    private LineGraphSeries<DataPoint> series_z;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,7 +86,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         // we get graph view instance
         // get GraphView from activity_main.xml with ID
-        GraphView graph = (GraphView) findViewById(R.id.graph);
+        graph = (GraphView) findViewById(R.id.graph);
+
         stopButton = (Button) findViewById(R.id.button_stop);
         patientID = (TextView) findViewById(R.id.patient_id);
         patientName = (TextView) findViewById(R.id.patient_name);
@@ -69,17 +99,37 @@ public class MainActivity extends AppCompatActivity {
         // data
         // Use LineGraphSeries from GraphView Library to add Data Point
         series = new LineGraphSeries<DataPoint>();
+        series_y = new LineGraphSeries<DataPoint>();
+        series_z = new LineGraphSeries<DataPoint>();
+
+
         graph.addSeries(series);
+        series.setColor(Color.MAGENTA);
+        graph.addSeries(series_y);
+        series_y.setColor(Color.BLACK);
+        graph.addSeries(series_z);
+        series_z.setColor(Color.RED);
+
         // customize a little bit viewport
         Viewport viewport = graph.getViewport();
         viewport.setYAxisBoundsManual(true);
-        viewport.setMinY(0);
-        viewport.setMaxY(2000);
+        viewport.setMinY(-40);
+        viewport.setMaxY(40);
+
+//
 
         //get Button Start Stop from ID getting from activity_main.xml
         if (savedInstanceState != null) {
             lastX = savedInstanceState.getInt(STATE_LASTX, 0);
+            lastY = savedInstanceState.getInt(STATE_LASTY, 0);
+            lastZ = savedInstanceState.getInt(STATE_LASTZ, 0);
+
             buttonStartStop = savedInstanceState.getBoolean(STATE_START, false);
+            //buttonStart = savedInstanceState.getBoolean(BUTTON_START, false);
+            //datapointExist = savedInstanceState.getBoolean(DATAPOINT_EXIST, false);
+            //checkSensor = savedInstanceState.getBoolean(CHECK_SENSOR, false);
+
+
         }
 
         startButton = findViewById(R.id.button_start);
@@ -87,15 +137,26 @@ public class MainActivity extends AppCompatActivity {
         EnableRuntimePermission();
 
 
+
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        sensorManager.registerListener(this, accelerometer , sensorManager.SENSOR_DELAY_NORMAL);
+
+
+
+
+
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 //startGraph();
                 buttonStartStop = true;
+                //Start adding points to table
                 //If not included it will create mutliple startGraph (speed it up)
                 if(buttonStart) {
                     buttonStart = false;
                     CreateTable();
+                    checkSensor = true;
                     startGraph();
                 }
             }
@@ -106,21 +167,22 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 buttonStartStop = false;
                 buttonStart = true;
+                checkSensor = false;
                 stopGraph();
-                AddNewDBEntry();
-
 
             }
         });
 
-        if(buttonStartStop) {
+       /* if(buttonStartStop) {
             startGraph();
         }
         else {
             stopGraph();
-        }
+        }*/
 
     }
+
+
 
     private void CreateTable(){
 
@@ -139,24 +201,31 @@ public class MainActivity extends AppCompatActivity {
 
         dbHandler = new DBHelper(MainActivity.this, person);
     }
-    //private static final String TAG = "MyActivity";
 
-    private void AddNewDBEntry(){
-        dbHandler.insertNewData("1","2","3");
-        ArrayList<HashMap<String, String>> results = dbHandler.GetDataFromCurrentPatient();
-
+    private void AddNewDBEntry(String x_value, String y_value, String z_value, String timestamp){
+        dbHandler.insertNewData(x_value, y_value,z_value, timestamp);
 
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+
+
+    }
+
+    protected void onPause() {
+        super.onPause();
+        sensorManager.unregisterListener(this);
     }
 
     // Randomly adds a max of 10 points of the viewpoint. The graph is scrolled to the end.
-    private void addEntry() {
+    private void addEntry(float x, float y, float z, float y_value) {
         // here, we choose to display max 10 points on the viewport and we scroll to end
-        series.appendData(new DataPoint(lastX++, RANDOM.nextDouble() * 1000d), false, 10);
+        series.appendData(new DataPoint(lastX++, x), false, 10);
+        series_y.appendData(new DataPoint(lastY++, y), false, 10);
+        series_z.appendData(new DataPoint(lastZ++, z), false, 10);
 
     }
 
@@ -167,8 +236,12 @@ public class MainActivity extends AppCompatActivity {
      */
 
     private void startGraph() {
-        GraphView graph = (GraphView) findViewById(R.id.graph);
         graph.addSeries(series);
+        series.setColor(Color.BLUE);
+        graph.addSeries(series_y);
+        series_y.setColor(Color.GREEN);
+        graph.addSeries(series_z);
+        series_z.setColor(Color.RED);
 
         new Thread(new Runnable() {
 
@@ -180,7 +253,10 @@ public class MainActivity extends AppCompatActivity {
 
                         @Override
                         public void run() {
-                            addEntry();
+                            if(datapointExist == true){
+                                datapointExist = false;
+                                addEntry(x, y, z, tstamp);
+                            }
                         }
                     });
 
@@ -202,11 +278,59 @@ public class MainActivity extends AppCompatActivity {
 
     private void stopGraph() {
 
-        GraphView graph = (GraphView) findViewById(R.id.graph);
-
         graph.removeAllSeries();
 
+    }
 
+
+
+    @Override
+    public void onSensorChanged(final SensorEvent sensorEvent) {
+
+        Sensor mySensor = sensorEvent.sensor;
+
+
+        if (checkSensor == true ){
+            if (mySensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+                float temp_x = sensorEvent.values[0];
+                float temp_y = sensorEvent.values[1];
+                float temp_z = sensorEvent.values[2];
+
+                long currTime = System.currentTimeMillis();
+
+                if(currTime - lastAccCheck > ACC_CHECK_INTERVAL) {
+                    Log.i(TAG, x + " " + y + " " + z);
+                    lastAccCheck = currTime;
+                    x = temp_x;
+                    y = temp_y;
+                    z = temp_z;
+
+                    Date now2 = new Date();
+
+                    tstamp = now2.getTime();
+
+                    //Log.d("MainActivity", "Current Timestamp: " + tstamp);
+
+                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
+
+                    dateFormat = simpleDateFormat.format(tstamp);
+
+                    //Log.d("MainActivity", "Current Timestamp: " + dateFormat);
+
+                    AddNewDBEntry(Float.toString(x), Float.toString(y), Float.toString(z), dateFormat);
+                    //Toast.makeText(MainActivity.this,"Add point to graph", Toast.LENGTH_LONG).show();
+
+                    datapointExist = true;
+                }
+
+            }
+        }
+
+
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int i) {
 
     }
 
@@ -214,11 +338,15 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-//        System.out.println("Before Rotate: " + lastX);
-        outState.putInt(STATE_LASTX, lastX);
+         outState.putInt(STATE_LASTX, lastX);
+        outState.putInt(STATE_LASTY, lastY);
+        outState.putInt(STATE_LASTZ, lastZ);
         outState.putBoolean(STATE_START, buttonStartStop);
-    }
+        //outState.putBoolean(BUTTON_START, buttonStart);
+        //outState.putBoolean(CHECK_SENSOR, checkSensor);
+        //outState.putBoolean(DATAPOINT_EXIST, datapointExist);
 
+    }
 
     public void EnableRuntimePermission(){
 

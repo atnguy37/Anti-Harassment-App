@@ -13,7 +13,10 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme" >
 
-        <activity android:name="com.asu.cse535.group_number_420.MainActivity">
+        <activity
+            android:name="com.asu.cse535.group_number_420.MainActivity"
+            android:screenOrientation="portrait"
+            >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
