@@ -7,6 +7,10 @@
     <string name="patient_name">Patient Name:</string>
     <string name="patient_age">Age:</string>
     <string name="patient_sex">Sex</string>
+    <string name="upload_database">Upload Database</string>
+    <string name="download_database">Download Database</string>
+
+
 
 
 </resources>
