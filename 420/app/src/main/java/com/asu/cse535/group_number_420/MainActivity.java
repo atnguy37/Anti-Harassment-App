@@ -3,6 +3,7 @@ package com.asu.cse535.group_number_420;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -10,6 +11,8 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.RadioButton;
@@ -87,6 +90,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // we get graph view instance
         // get GraphView from activity_main.xml with ID
         graph = (GraphView) findViewById(R.id.graph);
+
+
 
         stopButton = (Button) findViewById(R.id.button_stop);
         patientID = (TextView) findViewById(R.id.patient_id);
@@ -334,6 +339,49 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     }
 
+
+
+    //Creates the optional menu (three dots that contains settings)
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+
+    // This is for the optional menu and handles what happens when you click on the
+    // options like settings.
+    // Handle action bar item clicks here. The action bar will
+    // automatically handle clicks on the Home/Up button, so long
+    // as you specify a parent activity in AndroidManifest.xml.
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        long id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.upload_db) {
+
+            DBHelper temp_dbHandler = new DBHelper();
+
+            SQLiteDatabase sqlDB = temp_dbHandler.getDBInfo("/Android/Data/CSE535_ASSIGNMENT2");
+
+
+            Toast.makeText(MainActivity.this,"upload db", Toast.LENGTH_LONG).show();
+
+            return true;
+        }
+
+
+        if (id == R.id.download_db) {
+            Toast.makeText(MainActivity.this,"download db", Toast.LENGTH_LONG).show();
+
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {

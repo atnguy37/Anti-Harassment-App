@@ -41,6 +41,17 @@ public class DBHelper {
 
     }
 
+
+    public DBHelper(){
+
+    }
+
+    public SQLiteDatabase getDBInfo(String folder_path){
+        SQLiteDatabase sqlDB = SQLiteDatabase.openOrCreateDatabase(Environment.getExternalStorageDirectory()+folder_path, null);
+
+        return sqlDB;
+
+    }
     private void setTableName(){
         tableName = person.getName() + "_" + person.getId() + "_" + person.getAge() + "_" + person.getSex();
     }
