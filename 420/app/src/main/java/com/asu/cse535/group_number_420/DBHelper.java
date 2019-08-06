@@ -59,7 +59,7 @@ public class DBHelper {
     public void CreateTable(){
 
         try{
-            sqlDB = SQLiteDatabase.openOrCreateDatabase(Environment.getExternalStorageDirectory()+"/Android/Data/CSE535_ASSIGNMENT2", null);
+            sqlDB = SQLiteDatabase.openOrCreateDatabase(Environment.getExternalStorageDirectory()+"/Android/Data/CSE535_ASSIGNMENT2.db", null);
 
             sqlDB.beginTransaction();
             try {
@@ -94,7 +94,7 @@ public class DBHelper {
 
     public void insertNewData(String xvalue, String yvalue, String zvalue, String timestamp){
 
-        sqlDB = SQLiteDatabase.openOrCreateDatabase(Environment.getExternalStorageDirectory()+"/Android/Data/CSE535_ASSIGNMENT2", null);
+        sqlDB = SQLiteDatabase.openOrCreateDatabase(Environment.getExternalStorageDirectory()+"/Android/Data/CSE535_ASSIGNMENT2.db", null);
         File sd = Environment.getExternalStorageDirectory();
         String path = sd.getAbsolutePath();
         try {
@@ -124,7 +124,7 @@ public class DBHelper {
 
 
     public ArrayList<HashMap<String, String>> GetDataFromCurrentPatient() {
-        sqlDB = SQLiteDatabase.openOrCreateDatabase(Environment.getExternalStorageDirectory()+"/Android/Data/CSE535_ASSIGNMENT2", null);
+        sqlDB = SQLiteDatabase.openOrCreateDatabase(Environment.getExternalStorageDirectory()+"/Android/Data/CSE535_ASSIGNMENT2.db", null);
 
         ArrayList<HashMap<String, String>> userList = new ArrayList<>();
         String query = "SELECT xvalues, yvalues, zvalues FROM " + tableName;
@@ -148,7 +148,7 @@ public class DBHelper {
     }
 
     public ArrayList<HashMap<String, String>> GetDataFromPatientInfo(String table_name) {
-        sqlDB = SQLiteDatabase.openOrCreateDatabase(Environment.getExternalStorageDirectory()+"/Android/Data/CSE535_ASSIGNMENT2", null);
+        sqlDB = SQLiteDatabase.openOrCreateDatabase(Environment.getExternalStorageDirectory()+"/Android/Data/CSE535_ASSIGNMENT2.db", null);
 
         ArrayList<HashMap<String, String>> userList = new ArrayList<>();
         String query = "SELECT xvalues, yvalues, zvalues FROM " + table_name;

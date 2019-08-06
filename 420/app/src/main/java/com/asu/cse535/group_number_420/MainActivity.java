@@ -3,13 +3,13 @@ package com.asu.cse535.group_number_420;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -28,6 +28,20 @@ import com.jjoe64.graphview.Viewport;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.InputStreamBody;
+import org.apache.http.impl.client.DefaultHttpClient;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
@@ -91,8 +105,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // get GraphView from activity_main.xml with ID
         graph = (GraphView) findViewById(R.id.graph);
 
-
-
         stopButton = (Button) findViewById(R.id.button_stop);
         patientID = (TextView) findViewById(R.id.patient_id);
         patientName = (TextView) findViewById(R.id.patient_name);
@@ -121,8 +133,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         viewport.setMinY(-40);
         viewport.setMaxY(40);
 
-//
-
         //get Button Start Stop from ID getting from activity_main.xml
         if (savedInstanceState != null) {
             lastX = savedInstanceState.getInt(STATE_LASTX, 0);
@@ -142,13 +152,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         EnableRuntimePermission();
 
 
-
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         sensorManager.registerListener(this, accelerometer , sensorManager.SENSOR_DELAY_NORMAL);
-
-
-
 
 
         startButton.setOnClickListener(new View.OnClickListener() {
@@ -178,15 +184,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         });
 
-       /* if(buttonStartStop) {
-            startGraph();
-        }
-        else {
-            stopGraph();
-        }*/
-
     }
-
 
 
     private void CreateTable(){
@@ -314,13 +312,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                     tstamp = now2.getTime();
 
-                    //Log.d("MainActivity", "Current Timestamp: " + tstamp);
-
                     SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
 
                     dateFormat = simpleDateFormat.format(tstamp);
-
-                    //Log.d("MainActivity", "Current Timestamp: " + dateFormat);
 
                     AddNewDBEntry(Float.toString(x), Float.toString(y), Float.toString(z), dateFormat);
                     //Toast.makeText(MainActivity.this,"Add point to graph", Toast.LENGTH_LONG).show();
@@ -364,12 +358,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //noinspection SimplifiableIfStatement
         if (id == R.id.upload_db) {
 
-            DBHelper temp_dbHandler = new DBHelper();
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    uploadFile();
+                }
+            }).start();
 
-            SQLiteDatabase sqlDB = temp_dbHandler.getDBInfo("/Android/Data/CSE535_ASSIGNMENT2");
-
-
-            Toast.makeText(MainActivity.this,"upload db", Toast.LENGTH_LONG).show();
 
             return true;
         }
@@ -383,6 +378,40 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return super.onOptionsItemSelected(item);
     }
 
+    private void uploadFile(){
+
+        File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), "/Android/Data/CSE535_ASSIGNMENT2.db");
+        String fileName = "CSE535_ASSIGNMENT2.db";
+
+        try {
+            InputStream iS = new FileInputStream(file);
+            byte[] dataFile;
+            try {
+                dataFile = IOUtils.toByteArray(iS);
+
+                HttpClient httpClient = new DefaultHttpClient();
+                HttpPost httpPost = new HttpPost("http://10.0.2.2:8888/upload/upload.php");
+
+                InputStreamBody iSB = new InputStreamBody(new ByteArrayInputStream(dataFile), fileName);
+                MultipartEntity mpE = new MultipartEntity();
+                mpE.addPart("file", iSB);
+                httpPost.setEntity(mpE);
+
+                HttpResponse httpResponse = httpClient.execute(httpPost);
+
+                Log.d("MainActivity", "It worked!");
+
+            } catch (IOException e) {
+                Log.e("MainActivity", e.toString());
+            }
+        } catch (FileNotFoundException e) {
+            Log.e("MainActivity", e.toString());
+        }
+
+
+
+
+    }
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
