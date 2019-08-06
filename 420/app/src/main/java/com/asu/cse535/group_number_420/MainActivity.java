@@ -9,7 +9,6 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -28,32 +27,18 @@ import com.jjoe64.graphview.Viewport;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.content.InputStreamBody;
-import org.apache.http.impl.client.DefaultHttpClient;
+import java.util.ArrayList;
+import java.util.HashMap;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Random;
+public class MainActivity extends AppCompatActivity {
+    private static final String TAG = "MyActivity";
+    private static final int NUMBER_OF_DATA = 10;
+    private float x,y,z;
+    private LineGraphSeries<DataPoint> seriesX,seriesY,seriesZ;
 
-public class MainActivity extends AppCompatActivity implements SensorEventListener {
-    private static final Random RANDOM = new Random();
+    public  static final int RequestPermissionCode_WRITE_EXTERNAL_STORAGE  = 1 ;
 
-    String dateFormat;
     private int lastX = 0;
-    private int lastY = 0;
-    private int lastZ = 0;
-
     private boolean buttonStartStop = false;
     private boolean buttonStart = true;
     private boolean checkSensor = false;
@@ -61,73 +46,64 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private Button stopButton;
     private Button startButton;
-    private TextView patientID;
-    private TextView patientName;
-    private TextView patientAge;
-    private RadioButton femaleButton;
-    private RadioButton maleButton;
-    private static final String STATE_LASTX = "LastX";
-    private static final String STATE_LASTY = "LastY";
-    private static final String STATE_LASTZ = "LastZ";
+    private TextView patient_id;
+    private TextView patient_name;
+    private TextView patient_age;
+    private RadioButton female;
+    private RadioButton male;
+    private SensorManager sensorManager;
+    Sensor accelerometer;
+    private String patientID;
+    private String patientName;
+    private String patientAge;
+    private String patientSex;
 
+    //    GraphView graph;
+    private static final String STATE_LASTX = "LastX";
     private static final String STATE_START = "ButtonStartStop";
+
+
+    private final static long ACC_CHECK_INTERVAL = 1000; // 1000ms
+    private long lastSaved = System.currentTimeMillis();
+
+    private FileUpload fileupload;
 
     RadioGroup radioGroup;
     DBHelper dbHandler;
     PersonInfo person;
-    private SensorManager sensorManager;
-    Sensor accelerometer;
-    long tstamp;
 
-
-    private final static long ACC_CHECK_INTERVAL = 1000;
-    private long lastAccCheck;
-    float x;
-    float y;
-    float z;
-
-    String TAG;
-
-    public  static final int RequestPermissionCode_WRITE_EXTERNAL_STORAGE  = 1 ;
-
-    GraphView graph;
-
-    private LineGraphSeries<DataPoint> series;
-    private LineGraphSeries<DataPoint> series_y;
-    private LineGraphSeries<DataPoint> series_z;
-
+    /**
+     * Starts the application, the graph view and the rest of the UI components
+     * and lastly sets an on click listener for the stop and start buttons
+     * @param savedInstanceState
+     */
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        sensorManager.registerListener(sensorListener, accelerometer , sensorManager.SENSOR_DELAY_NORMAL);
         // we get graph view instance
         // get GraphView from activity_main.xml with ID
-        graph = (GraphView) findViewById(R.id.graph);
-
+        GraphView graph = (GraphView) findViewById(R.id.graph);
         stopButton = (Button) findViewById(R.id.button_stop);
-        patientID = (TextView) findViewById(R.id.patient_id);
-        patientName = (TextView) findViewById(R.id.patient_name);
-        patientAge = (TextView) findViewById(R.id.patient_age);
-        femaleButton = (RadioButton) findViewById(R.id.radioButton_female);
-        maleButton = (RadioButton) findViewById(R.id.radioButton_male);
+        patient_id = (TextView) findViewById(R.id.patient_id);
+        patient_name = (TextView) findViewById(R.id.patient_name);
+        patient_age = (TextView) findViewById(R.id.patient_age);
+        female = (RadioButton) findViewById(R.id.radioButton_female);
+        male = (RadioButton) findViewById(R.id.radioButton_male);
         radioGroup = (RadioGroup) findViewById(R.id.radioButtonGroup);
 
-        // data
+        EnableRuntimePermission();
+
         // Use LineGraphSeries from GraphView Library to add Data Point
-        series = new LineGraphSeries<DataPoint>();
-        series_y = new LineGraphSeries<DataPoint>();
-        series_z = new LineGraphSeries<DataPoint>();
+        seriesX = new LineGraphSeries<DataPoint>();
+        seriesY = new LineGraphSeries<DataPoint>();
+        seriesZ = new LineGraphSeries<DataPoint>();
 
-
-        graph.addSeries(series);
-        series.setColor(Color.MAGENTA);
-        graph.addSeries(series_y);
-        series_y.setColor(Color.BLACK);
-        graph.addSeries(series_z);
-        series_z.setColor(Color.RED);
-
-        // customize a little bit viewport
         Viewport viewport = graph.getViewport();
         viewport.setYAxisBoundsManual(true);
         viewport.setMinY(-40);
@@ -136,25 +112,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //get Button Start Stop from ID getting from activity_main.xml
         if (savedInstanceState != null) {
             lastX = savedInstanceState.getInt(STATE_LASTX, 0);
-            lastY = savedInstanceState.getInt(STATE_LASTY, 0);
-            lastZ = savedInstanceState.getInt(STATE_LASTZ, 0);
-
             buttonStartStop = savedInstanceState.getBoolean(STATE_START, false);
-            //buttonStart = savedInstanceState.getBoolean(BUTTON_START, false);
-            //datapointExist = savedInstanceState.getBoolean(DATAPOINT_EXIST, false);
-            //checkSensor = savedInstanceState.getBoolean(CHECK_SENSOR, false);
-
-
         }
 
         startButton = findViewById(R.id.button_start);
-
-        EnableRuntimePermission();
-
-
-        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        sensorManager.registerListener(this, accelerometer , sensorManager.SENSOR_DELAY_NORMAL);
 
 
         startButton.setOnClickListener(new View.OnClickListener() {
@@ -162,7 +123,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             public void onClick(View view) {
                 //startGraph();
                 buttonStartStop = true;
-                //Start adding points to table
                 //If not included it will create mutliple startGraph (speed it up)
                 if(buttonStart) {
                     buttonStart = false;
@@ -170,6 +130,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     checkSensor = true;
                     startGraph();
                 }
+
             }
         });
 
@@ -184,95 +145,69 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         });
 
-    }
-
-
-    private void CreateTable(){
-
-        String name = patientName.getText().toString();
-        String id = patientID.getText().toString();
-        String age = patientAge.getText().toString();
-        Button sexTypeButton;
-
-        int selectedId = radioGroup.getCheckedRadioButtonId();
-
-        // find the radiobutton by returned id
-        sexTypeButton = (RadioButton) findViewById(selectedId);
-        String sex = sexTypeButton.getText().toString();
-
-        person = new PersonInfo(name, age, sex, id);
-
-        dbHandler = new DBHelper(MainActivity.this, person);
-    }
-
-    private void AddNewDBEntry(String x_value, String y_value, String z_value, String timestamp){
-        dbHandler.insertNewData(x_value, y_value,z_value, timestamp);
 
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-
-
-    }
-
-    protected void onPause() {
-        super.onPause();
-        sensorManager.unregisterListener(this);
     }
 
     // Randomly adds a max of 10 points of the viewpoint. The graph is scrolled to the end.
-    private void addEntry(float x, float y, float z, float y_value) {
+    private void addEntry(float x, float y, float z) {
         // here, we choose to display max 10 points on the viewport and we scroll to end
-        series.appendData(new DataPoint(lastX++, x), false, 10);
-        series_y.appendData(new DataPoint(lastY++, y), false, 10);
-        series_z.appendData(new DataPoint(lastZ++, z), false, 10);
+        seriesX.appendData(new DataPoint(lastX, x), false, 10);
+        seriesY.appendData(new DataPoint(lastX, y), false, 10);
+        seriesZ.appendData(new DataPoint(lastX, z), false, 10);
 
     }
+
+    private final SensorEventListener sensorListener = new SensorEventListener()
+    {
+        @Override
+        public void onSensorChanged(SensorEvent sensorEvent) {
+            Sensor mySensor = sensorEvent.sensor;
+            if (checkSensor == true ){
+                if (mySensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+//                index++;
+                    if ((System.currentTimeMillis() - lastSaved) > ACC_CHECK_INTERVAL) {
+//                    Log.d("Test","ResultX: "+x);
+//                    Log.d("Test","ResultY: "+y);
+//                    Log.d("Test","ResultZ: "+z);
+                        lastSaved = System.currentTimeMillis();
+                        x = sensorEvent.values[0];
+                        y = sensorEvent.values[1];
+                        z = sensorEvent.values[2];
+
+                        if(buttonStartStop) {
+                            addEntry(x, y, z);
+                            AddNewDBEntry();
+                            lastX++;
+                        }
+
+                    }
+                }
+
+            }
+        }
+        @Override
+        public void onAccuracyChanged(Sensor sensor,int accuracy) {
+        }
+    };
 
     /**
      * It adds the series of points to the graph and created a new threat
      * We wrote one threat that adds entries to the graph and another threat that changes the UI
      * elements, it keeps running until the stop button is clicked.
      */
-
     private void startGraph() {
-        graph.addSeries(series);
-        series.setColor(Color.BLUE);
-        graph.addSeries(series_y);
-        series_y.setColor(Color.GREEN);
-        graph.addSeries(series_z);
-        series_z.setColor(Color.RED);
-
-        new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-                // we add 100 new entries
-                while (buttonStartStop) {
-                    runOnUiThread(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            if(datapointExist == true){
-                                datapointExist = false;
-                                addEntry(x, y, z, tstamp);
-                            }
-                        }
-                    });
-
-                    // sleep to slow down the add of entries
-                    try {
-                        Thread.sleep(200);
-                    } catch (InterruptedException e) {
-                        // manage error ...
-                    }
-                }
-            }
-        }).start();
-
+        GraphView graph = (GraphView) findViewById(R.id.graph);
+        graph.addSeries(seriesX);
+        seriesX.setColor(Color.BLUE);
+        graph.addSeries(seriesY);
+        seriesY.setColor(Color.GREEN);
+        graph.addSeries(seriesZ);
+        seriesZ.setColor(Color.RED);
     }
 
     /**
@@ -281,62 +216,55 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private void stopGraph() {
 
+        GraphView graph = (GraphView) findViewById(R.id.graph);
+
         graph.removeAllSeries();
+
 
     }
 
+    private boolean checkUserInfo(){
 
+        String name = patient_name.getText().toString();
+        String id = patient_id.getText().toString();
+        String age = patient_age.getText().toString();
+        Button sexTypeButton;
 
-    @Override
-    public void onSensorChanged(final SensorEvent sensorEvent) {
+        int selectedId = radioGroup.getCheckedRadioButtonId();
 
-        Sensor mySensor = sensorEvent.sensor;
+        // find the radiobutton by returned id
+        sexTypeButton = (RadioButton) findViewById(selectedId);
+        String sex = sexTypeButton.getText().toString();
 
+        if (name != patientName || id != patientID || age != patientAge || sex != patientSex) {
+            Log.d(TAG, "Name: " + name + " Age: " + age + " Sex: " + sex + " ID: " + id );
+            person = new PersonInfo(name, age, sex, id);
 
-        if (checkSensor == true ){
-            if (mySensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-                float temp_x = sensorEvent.values[0];
-                float temp_y = sensorEvent.values[1];
-                float temp_z = sensorEvent.values[2];
+            patientName = name;
+            patientAge = age;
+            patientSex = sex;
+            patientID = id;
 
-                long currTime = System.currentTimeMillis();
+            Log.d(TAG,"Checking CheckInfo ");
+            return true;
+        }
+        return false;
+    }
 
-                if(currTime - lastAccCheck > ACC_CHECK_INTERVAL) {
-                    Log.i(TAG, x + " " + y + " " + z);
-                    lastAccCheck = currTime;
-                    x = temp_x;
-                    y = temp_y;
-                    z = temp_z;
-
-                    Date now2 = new Date();
-
-                    tstamp = now2.getTime();
-
-                    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
-
-                    dateFormat = simpleDateFormat.format(tstamp);
-
-                    AddNewDBEntry(Float.toString(x), Float.toString(y), Float.toString(z), dateFormat);
-                    //Toast.makeText(MainActivity.this,"Add point to graph", Toast.LENGTH_LONG).show();
-
-                    datapointExist = true;
-                }
-
-            }
+    private void CreateTable(){
+        if(checkUserInfo()) {
+            Log.d(TAG, "Created DB");
+            dbHandler = new DBHelper(MainActivity.this, person);
         }
 
 
     }
 
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int i) {
-
+    private void AddNewDBEntry(){
+        dbHandler.insertNewData(Float.toString(x),Float.toString(y),Float.toString(z));
     }
 
-
-
     //Creates the optional menu (three dots that contains settings)
-    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
@@ -357,14 +285,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.upload_db) {
+            fileupload = new FileUpload();
 
+            final String path = "/Android/Data/CSE535_ASSIGNMENT2";
+            final String file_name = "CSE535_ASSIGNMENT2";
+            final String server_address = "http://10.0.2.2:8888/upload/upload.php";
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    uploadFile();
+                    fileupload.uploadFile(path, file_name, server_address);
                 }
             }).start();
 
+            Toast.makeText(MainActivity.this,"upload db", Toast.LENGTH_LONG).show();
 
             return true;
         }
@@ -372,57 +305,39 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         if (id == R.id.download_db) {
             Toast.makeText(MainActivity.this,"download db", Toast.LENGTH_LONG).show();
+            Log.d(TAG,"Before CheckInfo: ");
+            CreateTable();
+            Log.d(TAG,"CheckInfo: ");
+            String tableName = person.getName() + "_" + person.getId() + "_" + person.getAge() + "_" + person.getSex();
+            //new FileDownload(getApplicationContext()).execute("http://192.168.0.23:8080/CSE535_ASSIGNMENT2","/Android/Data/CSE535_ASSIGNMENT2");
+            new FileDownload(getApplicationContext()).execute("http://10.0.2.2:8888/upload/CSE535_ASSIGNMENT2","/Android/Data/CSE535_ASSIGNMENT2");
+
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            //Log.d(TAG,"Load Data: " + tableName);
+            ArrayList<HashMap<String, String>> results = dbHandler.GetDataFromCurrentPatient();
+            //Log.d(TAG,"Stored Data: " + results.toString());
+            seriesX = new LineGraphSeries<DataPoint>(data(results,"xvalues"));
+            seriesY = new LineGraphSeries<DataPoint>(data(results,"yvalues"));
+            seriesZ = new LineGraphSeries<DataPoint>(data(results,"zvalues"));
+
+            startGraph();
 
             return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
-    private void uploadFile(){
 
-        File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), "/Android/Data/CSE535_ASSIGNMENT2.db");
-        String fileName = "CSE535_ASSIGNMENT2.db";
-
-        try {
-            InputStream iS = new FileInputStream(file);
-            byte[] dataFile;
-            try {
-                dataFile = IOUtils.toByteArray(iS);
-
-                HttpClient httpClient = new DefaultHttpClient();
-                HttpPost httpPost = new HttpPost("http://10.0.2.2:8888/upload/upload.php");
-
-                InputStreamBody iSB = new InputStreamBody(new ByteArrayInputStream(dataFile), fileName);
-                MultipartEntity mpE = new MultipartEntity();
-                mpE.addPart("file", iSB);
-                httpPost.setEntity(mpE);
-
-                HttpResponse httpResponse = httpClient.execute(httpPost);
-
-                Log.d("MainActivity", "It worked!");
-
-            } catch (IOException e) {
-                Log.e("MainActivity", e.toString());
-            }
-        } catch (FileNotFoundException e) {
-            Log.e("MainActivity", e.toString());
-        }
-
-
-
-
-    }
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-         outState.putInt(STATE_LASTX, lastX);
-        outState.putInt(STATE_LASTY, lastY);
-        outState.putInt(STATE_LASTZ, lastZ);
+        outState.putInt(STATE_LASTX, lastX);
         outState.putBoolean(STATE_START, buttonStartStop);
-        //outState.putBoolean(BUTTON_START, buttonStart);
-        //outState.putBoolean(CHECK_SENSOR, checkSensor);
-        //outState.putBoolean(DATAPOINT_EXIST, datapointExist);
-
     }
 
     public void EnableRuntimePermission(){
@@ -440,6 +355,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
 
+    private DataPoint[] data(ArrayList<HashMap<String, String>> data, String axis){
+        int n=data.size(); //to find out the no. of data-points
+        DataPoint[] values = new DataPoint[NUMBER_OF_DATA]; //creating an object of type
+        for(int i=0;i<NUMBER_OF_DATA;i++){
+            DataPoint v = new
+                    DataPoint(n - NUMBER_OF_DATA + i + 1,Float.parseFloat(data.get(i).get(axis)));
+            values[i] = v;
+            Log.d(TAG,"Data New: " + (n - NUMBER_OF_DATA + i + 1));
+        }
+        lastX = n + 1;
+        return values;
+    }
 
     @Override
     public void onRequestPermissionsResult(int RequestCode, String per[], int[] PResult) {
@@ -454,5 +381,4 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 break;
         }
     }
-
 }
