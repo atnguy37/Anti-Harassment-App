@@ -206,8 +206,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Male"
-                android:textSize="10sp"
-                android:checked="true"/>
+                android:textSize="10sp" />
 
         </RadioGroup>
     </RelativeLayout>
@@ -246,6 +245,7 @@
          app:layout_constraintEnd_toEndOf="parent"
          app:layout_constraintTop_toBottomOf="@+id/graph"
          app:layout_constraintVertical_bias="0.056" />
+
      <com.jjoe64.graphview.GraphView
          android:id="@+id/graph_3"
          android:layout_width="match_parent"

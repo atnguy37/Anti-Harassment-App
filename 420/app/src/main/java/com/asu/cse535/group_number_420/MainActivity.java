@@ -9,7 +9,6 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -28,33 +27,15 @@ import com.jjoe64.graphview.Viewport;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.content.InputStreamBody;
-import org.apache.http.impl.client.DefaultHttpClient;
-
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MyActivity";
     private static final int NUMBER_OF_DATA = 10;
     private float x,y,z;
     private LineGraphSeries<DataPoint> seriesX,seriesY,seriesZ;
-    //    private LineGraphSeries<DataPoint> series2;
+
     public  static final int RequestPermissionCode_WRITE_EXTERNAL_STORAGE  = 1 ;
 
     private int lastX = 0;
@@ -84,6 +65,8 @@ public class MainActivity extends AppCompatActivity {
 
     private final static long ACC_CHECK_INTERVAL = 1000; // 1000ms
     private long lastSaved = System.currentTimeMillis();
+
+    private FileUpload fileupload;
 
     RadioGroup radioGroup;
     DBHelper dbHandler;
@@ -115,33 +98,12 @@ public class MainActivity extends AppCompatActivity {
         radioGroup = (RadioGroup) findViewById(R.id.radioButtonGroup);
 
         EnableRuntimePermission();
-        //CreateTable();
 
-
-        // data
         // Use LineGraphSeries from GraphView Library to add Data Point
         seriesX = new LineGraphSeries<DataPoint>();
         seriesY = new LineGraphSeries<DataPoint>();
         seriesZ = new LineGraphSeries<DataPoint>();
 
-//        seriesX.setTitle("X");
-//        seriesY.setTitle("Y");
-//        seriesZ.setTitle("Z");
-//
-//        seriesX.setColor(Color.rgb(1,2,3));
-//        seriesY.setColor(Color.rgb(40,55,60));
-//        seriesZ.setColor(Color.rgb(120,180,90));
-
-//        graph.addSeries(seriesX);
-//        seriesX.setColor(Color.MAGENTA);
-//        graph.addSeries(seriesY);
-//        seriesY.setColor(Color.BLACK);
-//        graph.addSeries(seriesZ);
-//        seriesZ.setColor(Color.RED);
-
-//        graph.addSeries(series2);
-//        graph.addSeries(series);
-        // customize a little bit viewport
         Viewport viewport = graph.getViewport();
         viewport.setYAxisBoundsManual(true);
         viewport.setMinY(-40);
@@ -155,8 +117,6 @@ public class MainActivity extends AppCompatActivity {
 
         startButton = findViewById(R.id.button_start);
 
-        // set click function for button
-
 
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -165,10 +125,10 @@ public class MainActivity extends AppCompatActivity {
                 buttonStartStop = true;
                 //If not included it will create mutliple startGraph (speed it up)
                 if(buttonStart) {
-                    buttonStart = false;
-                    CreateTable();
-                    checkSensor = true;
-                    startGraph();
+                        CreateTable();
+                        buttonStart = false;
+                        checkSensor = true;
+                        startGraph();
                 }
 
             }
@@ -185,12 +145,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-//        if(buttonStartStop) {
-//            startGraph();
-//        }
-//        else {
-//            stopGraph();
-//        }
 
     }
 
@@ -208,19 +162,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-
-//    @Override
-//    public void onSensorChanged(SensorEvent event) {
-//        if ((System.currentTimeMillis() - lastSaved) > ACCE_FILTER_DATA_MIN_TIME) {
-//            lastSaved = System.currentTimeMillis();
-//            float x = event.values[0];
-//            float y = event.values[1];
-//            float z = event.values[2];
-//        }
-//    }
-
     private final SensorEventListener sensorListener = new SensorEventListener()
-
     {
         @Override
         public void onSensorChanged(SensorEvent sensorEvent) {
@@ -238,6 +180,7 @@ public class MainActivity extends AppCompatActivity {
                         z = sensorEvent.values[2];
 
                         if(buttonStartStop) {
+                            //Log.d("Test","lastX: "+lastX);
                             addEntry(x, y, z);
                             AddNewDBEntry();
                             lastX++;
@@ -247,23 +190,17 @@ public class MainActivity extends AppCompatActivity {
                 }
 
             }
-//            try {
-//                TimeUnit.MILLISECONDS.sleep(200);
-//            }
-//            catch (Exception e) {
-//            e.printStackTrace();
-//            }
         }
         @Override
         public void onAccuracyChanged(Sensor sensor,int accuracy) {
         }
     };
-    /**
+
+    /*
      * It adds the series of points to the graph and created a new threat
      * We wrote one threat that adds entries to the graph and another threat that changes the UI
      * elements, it keeps running until the stop button is clicked.
      */
-
     private void startGraph() {
         GraphView graph = (GraphView) findViewById(R.id.graph);
         graph.addSeries(seriesX);
@@ -272,30 +209,6 @@ public class MainActivity extends AppCompatActivity {
         seriesY.setColor(Color.GREEN);
         graph.addSeries(seriesZ);
         seriesZ.setColor(Color.RED);
-//        new Thread(new Runnable() {
-//
-//            @Override
-//            public void run() {
-//                // we add 100 new entries
-//                while (buttonStartStop) {
-//                    runOnUiThread(new Runnable() {
-//
-//                        @Override
-//                        public void run() {
-//                            addEntry();
-//                        }
-//                    });
-//
-//                    // sleep to slow down the add of entries
-////                    try {
-////                        Thread.sleep(200);
-////                    } catch (InterruptedException e) {
-////                        // manage error ...
-////                    }
-//                }
-//            }
-//        }).start();
-
     }
 
     /**
@@ -317,46 +230,55 @@ public class MainActivity extends AppCompatActivity {
         String id = patient_id.getText().toString();
         String age = patient_age.getText().toString();
         Button sexTypeButton;
+        if(radioGroup.getCheckedRadioButtonId()!=-1 && !name.isEmpty() && !id.isEmpty() && !age.isEmpty()) {
+            int selectedId = radioGroup.getCheckedRadioButtonId();
+            // find the radiobutton by returned id
+            sexTypeButton = (RadioButton) findViewById(selectedId);
+            String sex = sexTypeButton.getText().toString();
 
-        int selectedId = radioGroup.getCheckedRadioButtonId();
+            if (!name.equals(patientName) || !id.equals(patientID) || !age.equals(patientAge) || !sex.equals(patientSex)) {
+//                Log.d(TAG, "Name: " + name + " Age: " + age + " Sex: " + sex + " ID: " + id );
+//                Log.d(TAG, "Name2: " + patientName + " Age2: " + patientAge + " Sex2: " + patientSex + " ID2: " + patientID );
+                person = new PersonInfo(name, age, sex, id);
 
-        // find the radiobutton by returned id
-        sexTypeButton = (RadioButton) findViewById(selectedId);
-        String sex = sexTypeButton.getText().toString();
+                patientName = name;
+                patientAge = age;
+                patientSex = sex;
+                patientID = id;
 
-        if (name != patientName || id != patientID || age != patientAge || sex != patientSex) {
-            Log.d(TAG, "Name: " + name + " Age: " + age + " Sex: " + sex + " ID: " + id );
-            person = new PersonInfo(name, age, sex, id);
+                lastX = 0;
+                stopGraph();
 
-            patientName = name;
-            patientAge = age;
-            patientSex = sex;
-            patientID = id;
+                seriesX = new LineGraphSeries<DataPoint>();
+                seriesY = new LineGraphSeries<DataPoint>();
+                seriesZ = new LineGraphSeries<DataPoint>();
 
-            Log.d(TAG,"Checking CheckInfo ");
+                //Log.d(TAG,"Checking CheckInfo ");
+                return true;
+            }
+            //Log.d(TAG,"Duplicate ");
+            return false;
+        }
+        Toast.makeText(MainActivity.this,"Your information is not enough", Toast.LENGTH_LONG).show();
+
+        return false;
+    }
+
+    private boolean CreateTable(){
+        //Log.d(TAG,"Check Info create");
+        if(checkUserInfo()) {
+            //Log.d(TAG, "Created DB");
+            dbHandler = new DBHelper(MainActivity.this, person);
             return true;
         }
         return false;
     }
-    private void CreateTable(){
-        if(checkUserInfo()) {
-            Log.d(TAG, "Created DB");
-            dbHandler = new DBHelper(MainActivity.this, person);
-        }
-
-
-    }
-    //private static final String TAG = "MyActivity";
 
     private void AddNewDBEntry(){
         dbHandler.insertNewData(Float.toString(x),Float.toString(y),Float.toString(z));
-//        ArrayList<HashMap<String, String>> results = dbHandler.GetDataFromCurrentPatient();
-
-
     }
 
     //Creates the optional menu (three dots that contains settings)
-
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
@@ -377,14 +299,17 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.upload_db) {
+            fileupload = new FileUpload();
 
+            final String path = "/Android/Data/CSE535_ASSIGNMENT2";
+            final String file_name = "CSE535_ASSIGNMENT2";
+            final String server_address = "http://10.0.2.2:8888/upload/upload.php";
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    uploadFile();
+                    fileupload.uploadFile(path, file_name, server_address);
                 }
             }).start();
-
 
             Toast.makeText(MainActivity.this,"upload db", Toast.LENGTH_LONG).show();
 
@@ -393,71 +318,53 @@ public class MainActivity extends AppCompatActivity {
 
 
         if (id == R.id.download_db) {
-            Toast.makeText(MainActivity.this,"download db", Toast.LENGTH_LONG).show();
-            Log.d(TAG,"Before CheckInfo: ");
-            CreateTable();
-            Log.d(TAG,"CheckInfo: ");
-            String tableName = person.getName() + "_" + person.getId() + "_" + person.getAge() + "_" + person.getSex();
-            new FileDownload(getApplicationContext()).execute("http://192.168.0.23:8080/CSE535_ASSIGNMENT2_TEST","/Android/Data/CSE535_ASSIGNMENT2_TEST");
+            //Log.d(TAG,"Before CheckInfo: ");
+            if(buttonStartStop) {
+                Toast.makeText(MainActivity.this,"You should press Stop before download database", Toast.LENGTH_LONG).show();
+                return true;
+            }
 
-            //Log.d(TAG,"Load Data: " + tableName);
+            CreateTable();
+            Toast.makeText(MainActivity.this,"download db", Toast.LENGTH_LONG).show();
+
+                //Log.d(TAG,"CheckInfo: ");
+                //String tableName = person.getName() + "_" + person.getId() + "_" + person.getAge() + "_" + person.getSex();
+                //new FileDownload(getApplicationContext()).execute("http://192.168.0.23:8080/CSE535_ASSIGNMENT2","/Android/Data/CSE535_ASSIGNMENT2");
+            new FileDownload(getApplicationContext()).execute("http://10.0.2.2:8888/upload/CSE535_ASSIGNMENT2","/Android/Data/CSE535_ASSIGNMENT2");
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            Log.d(TAG,"Load Data: ");
             ArrayList<HashMap<String, String>> results = dbHandler.GetDataFromCurrentPatient();
             //Log.d(TAG,"Stored Data: " + results.toString());
-            seriesX = new LineGraphSeries<DataPoint>(data(results,"xvalues"));
-            seriesY = new LineGraphSeries<DataPoint>(data(results,"yvalues"));
-            seriesZ = new LineGraphSeries<DataPoint>(data(results,"zvalues"));
-
-            startGraph();
-
+            if(results != null ) {
+                seriesX = new LineGraphSeries<DataPoint>(data(results,"xvalues"));
+                seriesY = new LineGraphSeries<DataPoint>(data(results,"yvalues"));
+                seriesZ = new LineGraphSeries<DataPoint>(data(results,"zvalues"));
+                    //Log.d(TAG,"Load Data: " + results.toString());
+                startGraph();
+            }
+            else {
+                patientName = "";
+                patientAge = "";
+                patientSex = "";
+                patientID = "";
+            }
             return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
-    private void uploadFile(){
 
-        File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), "/Android/Data/CSE535_ASSIGNMENT2.db");
-        String fileName = "CSE535_ASSIGNMENT2.db";
-
-        try {
-            InputStream iS = new FileInputStream(file);
-            byte[] dataFile;
-            try {
-                dataFile = IOUtils.toByteArray(iS);
-
-                HttpClient httpClient = new DefaultHttpClient();
-                HttpPost httpPost = new HttpPost("http://10.0.2.2:8888/upload/upload.php");
-
-                InputStreamBody iSB = new InputStreamBody(new ByteArrayInputStream(dataFile), fileName);
-                MultipartEntity mpE = new MultipartEntity();
-                mpE.addPart("file", iSB);
-                httpPost.setEntity(mpE);
-
-                HttpResponse httpResponse = httpClient.execute(httpPost);
-
-                Log.d("MainActivity", "It worked!");
-
-            } catch (IOException e) {
-                Log.e("MainActivity", e.toString());
-            }
-        } catch (FileNotFoundException e) {
-            Log.e("MainActivity", e.toString());
-        }
-
-
-
-
-    }
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-//        System.out.println("Before Rotate: " + lastX);
         outState.putInt(STATE_LASTX, lastX);
         outState.putBoolean(STATE_START, buttonStartStop);
-        //outState.putBoolean(BUTTON_START, buttonStart);
-        //outState.putBoolean(CHECK_SENSOR, checkSensor);
-        //outState.putBoolean(DATAPOINT_EXIST, datapointExist);
-
     }
 
     public void EnableRuntimePermission(){
@@ -478,11 +385,12 @@ public class MainActivity extends AppCompatActivity {
     private DataPoint[] data(ArrayList<HashMap<String, String>> data, String axis){
         int n=data.size(); //to find out the no. of data-points
         DataPoint[] values = new DataPoint[NUMBER_OF_DATA]; //creating an object of type
+        //Log.d(TAG,"Data Size: " + n);
         for(int i=0;i<NUMBER_OF_DATA;i++){
             DataPoint v = new
                     DataPoint(n - NUMBER_OF_DATA + i + 1,Float.parseFloat(data.get(i).get(axis)));
             values[i] = v;
-            Log.d(TAG,"Data New: " + (n - NUMBER_OF_DATA + i + 1));
+            //Log.d(TAG,"Data New: " + (n - NUMBER_OF_DATA + i + 1));
         }
         lastX = n + 1;
         return values;

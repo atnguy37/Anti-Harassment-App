@@ -97,8 +97,6 @@ public class DBHelper {
         File sd = Environment.getExternalStorageDirectory();
         String path = sd.getAbsolutePath();
         try {
-            //perform your database operations here ...
-//            sqlDB.setTransactionSuccessful(); //commit your changes
             ContentValues contentValues = new ContentValues();
 
             //contentValues.put(TIME_STAMP, timestamp);
@@ -123,29 +121,34 @@ public class DBHelper {
 
 
     public ArrayList<HashMap<String, String>> GetDataFromCurrentPatient() {
-        sqlDB = SQLiteDatabase.openOrCreateDatabase(Environment.getExternalStorageDirectory().getPath()+"/Android/Data/CSE535_ASSIGNMENT2_TEST", null);
+        sqlDB = SQLiteDatabase.openOrCreateDatabase(Environment.getExternalStorageDirectory().getPath()+"/Android/Data/CSE535_ASSIGNMENT2", null);
 
         ArrayList<HashMap<String, String>> userList = new ArrayList<>();
-        //String query = "SELECT xvalues, yvalues, zvalues FROM " + tableName + " ORDER BY TIMESTAMP DESC LIMIT 10";
+
         String query = "SELECT xvalues, yvalues, zvalues FROM " + tableName + " ORDER BY TIMESTAMP DESC";
         Log.d(TAG,"Query: " + query);
-        Cursor cursor = sqlDB.rawQuery(query,null);
-        Log.i(TAG,"before cursor " + cursor.getCount());
+        try {
+            Cursor cursor = sqlDB.rawQuery(query, null);
+            //Log.i(TAG, "before cursor " + cursor.getCount());
 
-        while (cursor.moveToNext()) {
-            HashMap<String, String> user = new HashMap<>();
-            user.put("xvalues", cursor.getString(cursor.getColumnIndexOrThrow(XVALUES)));
-            //Log.i(TAG,"User 1 data ");
-            user.put("yvalues", cursor.getString(cursor.getColumnIndexOrThrow(YVALUES)));
-            //Log.i(TAG,"User 1 data ");
-            user.put("zvalues", cursor.getString(cursor.getColumnIndexOrThrow(ZVALUES)));
-            //Log.i(TAG,"User 1 data ");
+            while (cursor.moveToNext()) {
+                HashMap<String, String> user = new HashMap<>();
+                user.put("xvalues", cursor.getString(cursor.getColumnIndexOrThrow(XVALUES)));
+                //Log.i(TAG,"User 1 data ");
+                user.put("yvalues", cursor.getString(cursor.getColumnIndexOrThrow(YVALUES)));
+                //Log.i(TAG,"User 1 data ");
+                user.put("zvalues", cursor.getString(cursor.getColumnIndexOrThrow(ZVALUES)));
+                //Log.i(TAG,"User 1 data ");
 
-            userList.add(user);
+                userList.add(user);
+            }
+            //Toast.makeText(context, "Data returned", Toast.LENGTH_SHORT).show();
+            return userList;
+        }catch (SQLiteException e) {
+            //System.out.println("No such table: " + tableName);
+            Toast.makeText(context,  "No such table: " + tableName, Toast.LENGTH_SHORT).show();
         }
-        Toast.makeText(context,"Data returned", Toast.LENGTH_SHORT).show();
-
-        return userList;
+        return null;
     }
 
     public ArrayList<HashMap<String, String>> GetDataFromPatientInfo(String table_name) {
