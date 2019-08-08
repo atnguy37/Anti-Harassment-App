@@ -1,5 +1,8 @@
 package com.asu.cse535.project;
 
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,7 +22,7 @@ import com.google.firebase.auth.FirebaseUser;
  * @author mario padilla, efren lopez
  */
 public class HomeFragment extends Fragment {
-
+    private boolean click = true;
     private Button alertButton;
     LinearLayout layout1;
     LinearLayout layout2;
@@ -46,7 +49,8 @@ public class HomeFragment extends Fragment {
                 // Code here executes on main thread after user presses button
 
                 // Replace
-                Toast.makeText( getActivity(),"Alert", Toast.LENGTH_SHORT).show();
+                Toast.makeText( getActivity(),"Alert!", Toast.LENGTH_SHORT).show();
+                makeSound ();
             }
         });
 
@@ -106,6 +110,28 @@ public class HomeFragment extends Fragment {
             }
         });
         return view;
+    }
+
+
+    private void makeSound () {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+//                    System.out.println("Shake: " + shaking);
+//                    System.out.println("Wait: " + wait);
+                    // we add 100 new entries
+                        Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+                        Ringtone r = RingtoneManager.getRingtone(getContext(), notification);
+                        r.play();
+                        Thread.sleep(10000);
+                        r.stop();
+                    }
+                     catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 
 

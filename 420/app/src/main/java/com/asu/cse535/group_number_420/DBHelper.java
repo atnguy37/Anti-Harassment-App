@@ -127,23 +127,28 @@ public class DBHelper {
 
         String query = "SELECT xvalues, yvalues, zvalues FROM " + tableName + " ORDER BY TIMESTAMP DESC";
         Log.d(TAG,"Query: " + query);
-        Cursor cursor = sqlDB.rawQuery(query,null);
-        Log.i(TAG,"before cursor " + cursor.getCount());
+        try {
+            Cursor cursor = sqlDB.rawQuery(query, null);
+            //Log.i(TAG, "before cursor " + cursor.getCount());
 
-        while (cursor.moveToNext()) {
-            HashMap<String, String> user = new HashMap<>();
-            user.put("xvalues", cursor.getString(cursor.getColumnIndexOrThrow(XVALUES)));
-            //Log.i(TAG,"User 1 data ");
-            user.put("yvalues", cursor.getString(cursor.getColumnIndexOrThrow(YVALUES)));
-            //Log.i(TAG,"User 1 data ");
-            user.put("zvalues", cursor.getString(cursor.getColumnIndexOrThrow(ZVALUES)));
-            //Log.i(TAG,"User 1 data ");
+            while (cursor.moveToNext()) {
+                HashMap<String, String> user = new HashMap<>();
+                user.put("xvalues", cursor.getString(cursor.getColumnIndexOrThrow(XVALUES)));
+                //Log.i(TAG,"User 1 data ");
+                user.put("yvalues", cursor.getString(cursor.getColumnIndexOrThrow(YVALUES)));
+                //Log.i(TAG,"User 1 data ");
+                user.put("zvalues", cursor.getString(cursor.getColumnIndexOrThrow(ZVALUES)));
+                //Log.i(TAG,"User 1 data ");
 
-            userList.add(user);
+                userList.add(user);
+            }
+            //Toast.makeText(context, "Data returned", Toast.LENGTH_SHORT).show();
+            return userList;
+        }catch (SQLiteException e) {
+            //System.out.println("No such table: " + tableName);
+            Toast.makeText(context,  "No such table: " + tableName, Toast.LENGTH_SHORT).show();
         }
-        Toast.makeText(context,"Data returned", Toast.LENGTH_SHORT).show();
-
-        return userList;
+        return null;
     }
 
     public ArrayList<HashMap<String, String>> GetDataFromPatientInfo(String table_name) {

@@ -125,10 +125,10 @@ public class MainActivity extends AppCompatActivity {
                 buttonStartStop = true;
                 //If not included it will create mutliple startGraph (speed it up)
                 if(buttonStart) {
-                    buttonStart = false;
-                    CreateTable();
-                    checkSensor = true;
-                    startGraph();
+                        CreateTable();
+                        buttonStart = false;
+                        checkSensor = true;
+                        startGraph();
                 }
 
             }
@@ -180,6 +180,7 @@ public class MainActivity extends AppCompatActivity {
                         z = sensorEvent.values[2];
 
                         if(buttonStartStop) {
+                            //Log.d("Test","lastX: "+lastX);
                             addEntry(x, y, z);
                             AddNewDBEntry();
                             lastX++;
@@ -195,7 +196,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    /**
+    /*
      * It adds the series of points to the graph and created a new threat
      * We wrote one threat that adds entries to the graph and another threat that changes the UI
      * elements, it keeps running until the stop button is clicked.
@@ -229,35 +230,48 @@ public class MainActivity extends AppCompatActivity {
         String id = patient_id.getText().toString();
         String age = patient_age.getText().toString();
         Button sexTypeButton;
+        if(radioGroup.getCheckedRadioButtonId()!=-1 && !name.isEmpty() && !id.isEmpty() && !age.isEmpty()) {
+            int selectedId = radioGroup.getCheckedRadioButtonId();
+            // find the radiobutton by returned id
+            sexTypeButton = (RadioButton) findViewById(selectedId);
+            String sex = sexTypeButton.getText().toString();
 
-        int selectedId = radioGroup.getCheckedRadioButtonId();
+            if (!name.equals(patientName) || !id.equals(patientID) || !age.equals(patientAge) || !sex.equals(patientSex)) {
+//                Log.d(TAG, "Name: " + name + " Age: " + age + " Sex: " + sex + " ID: " + id );
+//                Log.d(TAG, "Name2: " + patientName + " Age2: " + patientAge + " Sex2: " + patientSex + " ID2: " + patientID );
+                person = new PersonInfo(name, age, sex, id);
 
-        // find the radiobutton by returned id
-        sexTypeButton = (RadioButton) findViewById(selectedId);
-        String sex = sexTypeButton.getText().toString();
+                patientName = name;
+                patientAge = age;
+                patientSex = sex;
+                patientID = id;
 
-        if (name != patientName || id != patientID || age != patientAge || sex != patientSex) {
-            Log.d(TAG, "Name: " + name + " Age: " + age + " Sex: " + sex + " ID: " + id );
-            person = new PersonInfo(name, age, sex, id);
+                lastX = 0;
+                stopGraph();
 
-            patientName = name;
-            patientAge = age;
-            patientSex = sex;
-            patientID = id;
+                seriesX = new LineGraphSeries<DataPoint>();
+                seriesY = new LineGraphSeries<DataPoint>();
+                seriesZ = new LineGraphSeries<DataPoint>();
 
-            Log.d(TAG,"Checking CheckInfo ");
-            return true;
+                //Log.d(TAG,"Checking CheckInfo ");
+                return true;
+            }
+            //Log.d(TAG,"Duplicate ");
+            return false;
         }
+        Toast.makeText(MainActivity.this,"Your information is not enough", Toast.LENGTH_LONG).show();
+
         return false;
     }
 
-    private void CreateTable(){
+    private boolean CreateTable(){
+        //Log.d(TAG,"Check Info create");
         if(checkUserInfo()) {
-            Log.d(TAG, "Created DB");
+            //Log.d(TAG, "Created DB");
             dbHandler = new DBHelper(MainActivity.this, person);
+            return true;
         }
-
-
+        return false;
     }
 
     private void AddNewDBEntry(){
@@ -304,29 +318,42 @@ public class MainActivity extends AppCompatActivity {
 
 
         if (id == R.id.download_db) {
-            Toast.makeText(MainActivity.this,"download db", Toast.LENGTH_LONG).show();
-            Log.d(TAG,"Before CheckInfo: ");
+            //Log.d(TAG,"Before CheckInfo: ");
+            if(buttonStartStop) {
+                Toast.makeText(MainActivity.this,"You should press Stop before download database", Toast.LENGTH_LONG).show();
+                return true;
+            }
+
             CreateTable();
-            Log.d(TAG,"CheckInfo: ");
-            String tableName = person.getName() + "_" + person.getId() + "_" + person.getAge() + "_" + person.getSex();
-            //new FileDownload(getApplicationContext()).execute("http://192.168.0.23:8080/CSE535_ASSIGNMENT2","/Android/Data/CSE535_ASSIGNMENT2");
+            Toast.makeText(MainActivity.this,"download db", Toast.LENGTH_LONG).show();
+
+                //Log.d(TAG,"CheckInfo: ");
+                //String tableName = person.getName() + "_" + person.getId() + "_" + person.getAge() + "_" + person.getSex();
+                //new FileDownload(getApplicationContext()).execute("http://192.168.0.23:8080/CSE535_ASSIGNMENT2","/Android/Data/CSE535_ASSIGNMENT2");
             new FileDownload(getApplicationContext()).execute("http://10.0.2.2:8888/upload/CSE535_ASSIGNMENT2","/Android/Data/CSE535_ASSIGNMENT2");
 
             try {
-                Thread.sleep(2000);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
 
-            //Log.d(TAG,"Load Data: " + tableName);
+            Log.d(TAG,"Load Data: ");
             ArrayList<HashMap<String, String>> results = dbHandler.GetDataFromCurrentPatient();
             //Log.d(TAG,"Stored Data: " + results.toString());
-            seriesX = new LineGraphSeries<DataPoint>(data(results,"xvalues"));
-            seriesY = new LineGraphSeries<DataPoint>(data(results,"yvalues"));
-            seriesZ = new LineGraphSeries<DataPoint>(data(results,"zvalues"));
-
-            startGraph();
-
+            if(results != null ) {
+                seriesX = new LineGraphSeries<DataPoint>(data(results,"xvalues"));
+                seriesY = new LineGraphSeries<DataPoint>(data(results,"yvalues"));
+                seriesZ = new LineGraphSeries<DataPoint>(data(results,"zvalues"));
+                    //Log.d(TAG,"Load Data: " + results.toString());
+                startGraph();
+            }
+            else {
+                patientName = "";
+                patientAge = "";
+                patientSex = "";
+                patientID = "";
+            }
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -358,11 +385,12 @@ public class MainActivity extends AppCompatActivity {
     private DataPoint[] data(ArrayList<HashMap<String, String>> data, String axis){
         int n=data.size(); //to find out the no. of data-points
         DataPoint[] values = new DataPoint[NUMBER_OF_DATA]; //creating an object of type
+        //Log.d(TAG,"Data Size: " + n);
         for(int i=0;i<NUMBER_OF_DATA;i++){
             DataPoint v = new
                     DataPoint(n - NUMBER_OF_DATA + i + 1,Float.parseFloat(data.get(i).get(axis)));
             values[i] = v;
-            Log.d(TAG,"Data New: " + (n - NUMBER_OF_DATA + i + 1));
+            //Log.d(TAG,"Data New: " + (n - NUMBER_OF_DATA + i + 1));
         }
         lastX = n + 1;
         return values;

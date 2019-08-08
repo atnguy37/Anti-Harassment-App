@@ -107,81 +107,77 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void addIDDocument(){
+        firebaseDB = initFirestore();
         AreYouSignInAccount = getAreYouSignInAccount();
 
-        if(AreYouSignInAccount != null) {
-            firebaseDB = initFirestore();
-            String UserID = AreYouSignInAccount.getUid();
+        String UserID = AreYouSignInAccount.getUid();
 
-            userContactsDocRef = firebaseDB.collection("users").document(UserID);
+        userContactsDocRef = firebaseDB.collection("users").document(UserID);
 
-            Map<String, Object> id = new HashMap<>();
-            id.put("id", UserID);
+        Map<String, Object> id = new HashMap<>();
+        id.put("id", UserID);
 
-            userContactsDocRef
-                    .set(id, SetOptions.merge())
-                    .addOnSuccessListener(new OnSuccessListener<Void>() {
-                        @Override
-                        public void onSuccess(Void aVoid) {
-                            Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
+        userContactsDocRef
+                .set(id, SetOptions.merge())
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
 
-                        }
-                    })
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
-
-                        }
-                    });
-
-
-            user = new User();
-
-            userContactsDocRef.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                @Override
-                public void onSuccess(DocumentSnapshot documentSnapshot) {
-                    if(documentSnapshot.exists()) {
-                        user = documentSnapshot.toObject(User.class);
-                        if(user.getEmergencyContacts() == null){
-                            Map<String, Object> contactsMap = new HashMap<>();
-                            //contactsMap.put(name, phoneNumber);
-
-                            Map<String, Object> emergencyContacts = new HashMap<>();
-                            emergencyContacts.put("EmergencyContacts", contactsMap);
-
-                            userContactsDocRef
-                                    .set(emergencyContacts, SetOptions.merge())
-                                    .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                        @Override
-                                        public void onSuccess(Void aVoid) {
-                                            Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
-
-                                        }
-                                    })
-                                    .addOnFailureListener(new OnFailureListener() {
-                                        @Override
-                                        public void onFailure(@NonNull Exception e) {
-                                            Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
-
-                                        }
-                                    });
-                        }
-
-                    } else {
-                        //User Exists
-                        Toast.makeText(getApplicationContext(), "EC structure Exists", Toast.LENGTH_SHORT).show();
                     }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
+
+                    }
+                });
+
+
+        user = new User();
+
+        userContactsDocRef.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                if(documentSnapshot.exists()) {
+                    user = documentSnapshot.toObject(User.class);
+                    if(user.getEmergencyContacts() == null){
+                        Map<String, Object> contactsMap = new HashMap<>();
+                        //contactsMap.put(name, phoneNumber);
+
+                        Map<String, Object> emergencyContacts = new HashMap<>();
+                        emergencyContacts.put("EmergencyContacts", contactsMap);
+
+                        userContactsDocRef
+                                .set(emergencyContacts, SetOptions.merge())
+                                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                    @Override
+                                    public void onSuccess(Void aVoid) {
+                                        Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
+
+                                    }
+                                })
+                                .addOnFailureListener(new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+                                        Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
+
+                                    }
+                                });
+                    }
+
+                } else {
+                    //User Exists
+                    Toast.makeText(getApplicationContext(), "EC structure Exists", Toast.LENGTH_SHORT).show();
                 }
-            }).addOnFailureListener(new OnFailureListener() {
-                @Override
-                public void onFailure(@NonNull Exception e) {
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
 
-                }
-            });
-
-        }
-
+            }
+        });
 
 
 
