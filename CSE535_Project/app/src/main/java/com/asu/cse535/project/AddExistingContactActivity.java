@@ -92,11 +92,16 @@ public class AddExistingContactActivity extends AppCompatActivity {
                 contactsMap = new HashMap<>();
                 UserStructureFB = new HashMap<>();
                 name = nameField.getText().toString();
+
                 phoneNumber = phoneNumberField.getText().toString();
+                String format_phone_number = phoneNumber.replaceAll("\\s+","");
+                format_phone_number = format_phone_number.replace("(", "");
+                format_phone_number = format_phone_number.replace(")", "");
+                format_phone_number = format_phone_number.replace("-", "");
 
                 if(!name.isEmpty()){
                     if(!phoneNumber.isEmpty()){
-                        contactsMap.put(name, phoneNumber);
+                        contactsMap.put(format_phone_number, name);
                         UserStructureFB.put("EmergencyContacts", contactsMap);
                         AddContact();
                     }
@@ -181,7 +186,7 @@ public class AddExistingContactActivity extends AppCompatActivity {
 
 
     }
-        @Override
+    @Override
     public void onStart() {
         super.onStart();
 

@@ -1,6 +1,18 @@
 package com.asu.cse535.project;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.location.LocationManager;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -16,15 +28,20 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
+import com.asu.cse535.project.maps.MapFragment;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -44,6 +61,10 @@ import com.google.firebase.firestore.SetOptions;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static com.asu.cse535.project.Constant.ERROR_DIALOG_REQUEST;
+import static com.asu.cse535.project.Constant.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
+import static com.asu.cse535.project.Constant.PERMISSIONS_REQUEST_ENABLE_GPS;
 
 /**
  * @author mariogp18, anh nguyen
@@ -66,9 +87,29 @@ public class MainActivity extends AppCompatActivity
     Button alert;
     DocumentReference userContactsDocRef;
 
+
+    public boolean mLocationPermissionGranted = false;
+
+    // Shaking Alarm
+    private SensorManager sm;
+    private float acelVal; // current acceleration including gravity
+    private float acelLast; // last acceleration including gravity
+    private float shake; // acceleration apart from gravity
+    private boolean shaking = false;
+    private boolean wait = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+
+        //Shaking Alarm
+        sm = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        sm.registerListener(sensorListener, sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
+        shake = 0.00f;
+        acelVal = SensorManager.GRAVITY_EARTH;
+        acelLast = SensorManager.GRAVITY_EARTH;
+
 
 
         //Setting the content view to activity_main.xml
@@ -110,74 +151,104 @@ public class MainActivity extends AppCompatActivity
         firebaseDB = initFirestore();
         AreYouSignInAccount = getAreYouSignInAccount();
 
-        String UserID = AreYouSignInAccount.getUid();
+        if (AreYouSignInAccount != null){
+            String UserID = AreYouSignInAccount.getUid();
 
-        userContactsDocRef = firebaseDB.collection("users").document(UserID);
+            userContactsDocRef = firebaseDB.collection("users").document(UserID);
 
-        Map<String, Object> id = new HashMap<>();
-        id.put("id", UserID);
+            Map<String, Object> id = new HashMap<>();
+            id.put("id", UserID);
 
-        userContactsDocRef
-                .set(id, SetOptions.merge())
-                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
 
+            userContactsDocRef
+                    .set(id, SetOptions.merge())
+                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
+
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
+
+                        }
+                    });
+
+
+            user = new User();
+
+            userContactsDocRef.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                @Override
+                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                    if(documentSnapshot.exists()) {
+                        user = documentSnapshot.toObject(User.class);
+                        if(user.getEmergencyContacts() == null){
+                            Map<String, Object> contactsMap = new HashMap<>();
+                            //contactsMap.put(name, phoneNumber);
+
+                            Map<String, Object> emergencyContacts = new HashMap<>();
+                            emergencyContacts.put("EmergencyContacts", contactsMap);
+
+                            userContactsDocRef
+                                    .set(emergencyContacts, SetOptions.merge())
+                                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        @Override
+                                        public void onSuccess(Void aVoid) {
+                                            Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
+
+                                        }
+                                    })
+                                    .addOnFailureListener(new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception e) {
+                                            Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
+
+                                        }
+                                    });
+                        }
+
+                        if(user.getLocations() == null){
+                            Map<String, Object> subLocations = new HashMap<>();
+
+                            UserLocation temp_UL = new UserLocation();
+                            Map<String, Object> Locations = new HashMap<>();
+                            Locations.put("Locations", temp_UL);
+
+                            userContactsDocRef
+                                    .set(Locations, SetOptions.merge())
+                                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        @Override
+                                        public void onSuccess(Void aVoid) {
+                                            //  Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
+
+                                        }
+                                    })
+                                    .addOnFailureListener(new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception e) {
+                                            //Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
+
+                                        }
+                                    });
+                        }
+
+
+                    } else {
+                        //User Exists
+                        Toast.makeText(getApplicationContext(), "EC structure Exists", Toast.LENGTH_SHORT).show();
                     }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
-
-                    }
-                });
-
-
-        user = new User();
-
-        userContactsDocRef.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-            @Override
-            public void onSuccess(DocumentSnapshot documentSnapshot) {
-                if(documentSnapshot.exists()) {
-                    user = documentSnapshot.toObject(User.class);
-                    if(user.getEmergencyContacts() == null){
-                        Map<String, Object> contactsMap = new HashMap<>();
-                        //contactsMap.put(name, phoneNumber);
-
-                        Map<String, Object> emergencyContacts = new HashMap<>();
-                        emergencyContacts.put("EmergencyContacts", contactsMap);
-
-                        userContactsDocRef
-                                .set(emergencyContacts, SetOptions.merge())
-                                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                    @Override
-                                    public void onSuccess(Void aVoid) {
-                                        Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
-
-                                    }
-                                })
-                                .addOnFailureListener(new OnFailureListener() {
-                                    @Override
-                                    public void onFailure(@NonNull Exception e) {
-                                        Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
-
-                                    }
-                                });
-                    }
-
-                } else {
-                    //User Exists
-                    Toast.makeText(getApplicationContext(), "EC structure Exists", Toast.LENGTH_SHORT).show();
                 }
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
 
-            }
-        });
+                }
+            });
+
+        }
 
 
 
@@ -224,6 +295,8 @@ public class MainActivity extends AppCompatActivity
            navigationView.getMenu().findItem(R.id.nav_home).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(false);
            navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(true);
+           navigationView.getMenu().findItem(R.id.nav_map).setVisible(true);
+
            navigationView.getMenu().findItem(R.id.nav_share).setVisible(true);
 
        }
@@ -232,6 +305,7 @@ public class MainActivity extends AppCompatActivity
            navigationView.getMenu().findItem(R.id.nav_home).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_log_out).setVisible(false);
            navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(false);
+           navigationView.getMenu().findItem(R.id.nav_map).setVisible(false);
            navigationView.getMenu().findItem(R.id.nav_share).setVisible(false);
 
        }
@@ -258,6 +332,95 @@ public class MainActivity extends AppCompatActivity
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(checkMapServices()){
+            if(mLocationPermissionGranted){
+                //getChatrooms();
+                Log.d(TAG, "onActivityResult: get Location Permission.");
+            }
+            else{
+                getLocationPermission();
+            }
+        }
+    }
+
+
+    private boolean checkMapServices() {
+        if (isServicesOK()) {
+            if (isMapsEnabled()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isMapsEnabled(){
+        final LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
+
+        if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
+            buildAlertMessageNoGps();
+            return false;
+        }
+        return true;
+    }
+
+    private void buildAlertMessageNoGps() {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("This application requires GPS to work properly, do you want to enable it?")
+                .setCancelable(false)
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        Intent enableGpsIntent = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                        startActivityForResult(enableGpsIntent, PERMISSIONS_REQUEST_ENABLE_GPS);
+                    }
+                });
+        final AlertDialog alert = builder.create();
+        alert.show();
+    }
+
+    private void getLocationPermission() {
+        /*
+         * Request location permission, so that we can get the location of the
+         * device. The result of the permission request is handled by a callback,
+         * onRequestPermissionsResult.
+         */
+        if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
+                android.Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            mLocationPermissionGranted = true;
+            //getChatrooms();
+        } else {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                    PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
+        }
+    }
+
+    public boolean isServicesOK(){
+        Log.d(TAG, "isServicesOK: checking google services version");
+
+        int available = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(MainActivity.this);
+
+        if(available == ConnectionResult.SUCCESS){
+            //everything is fine and the user can make map requests
+            Log.d(TAG, "isServicesOK: Google Play Services is working");
+            System.out.println("isServicesOK: Google Play Services is working");
+            return true;
+        }
+        else if(GoogleApiAvailability.getInstance().isUserResolvableError(available)){
+            //an error occured but we can resolve it
+            Log.d(TAG, "isServicesOK: an error occured but we can fix it");
+            Dialog dialog = GoogleApiAvailability.getInstance().getErrorDialog(MainActivity.this, available, ERROR_DIALOG_REQUEST);
+            dialog.show();
+        }else{
+            Toast.makeText(this, "You can't make map requests", Toast.LENGTH_SHORT).show();
+        }
+        return false;
+    }
+
 
     // This is for the optional menu and handles what happens when you click on the
     // options like settings.
@@ -332,13 +495,14 @@ public class MainActivity extends AppCompatActivity
                     }
                 });
 
-
-
-
                 break;
+
+            case R.id.nav_map:
+                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new MapFragment()).commit();
+                break;
+
             case R.id.nav_share:
                 Toast.makeText(this, "Share", Toast.LENGTH_SHORT).show();
-
                 break;
         }
 
@@ -412,6 +576,81 @@ public class MainActivity extends AppCompatActivity
         Intent signInIntent = new Intent(this, MainActivity.class);
         this.startActivity(signInIntent);
     }
+
+
+    private final SensorEventListener sensorListener = new SensorEventListener()
+
+    {
+        @Override
+        public void onSensorChanged(SensorEvent sensorEvent) {
+            Sensor mySensor = sensorEvent.sensor;
+
+            if (mySensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+//                index++;
+                float x = sensorEvent.values[0];
+                float y = sensorEvent.values[1];
+                float z = sensorEvent.values[2];
+                acelLast = acelVal;
+                acelVal = (float) Math.sqrt((double) (x * x + y * y + z * z));
+
+                float delta = acelVal - acelLast;
+                shake = shake * 0.9f + delta; // perform low-cut filter
+                //System.out.println("Shake: " + shake);
+                if ((shake > 10 || shake < -10)) {
+//                    Toast toast = Toast.makeText(getApplicationContext(), "DO NOT SHAKE ME", Toast.LENGTH_LONG);
+//                    toast.show();
+
+//                    System.out.println("Shake In: " + shaking);
+//                    System.out.println("Wait In: " + wait);
+                    shaking = true;
+                    if (!wait) {
+                        wait = true;
+                        makeSound();
+                    }
+
+//                System.out.println("DO NOT SHAKE ME");
+                } else
+                    shaking = false;
+            }
+//            try {
+//                TimeUnit.MILLISECONDS.sleep(200);
+//            }
+//            catch (Exception e) {
+//            e.printStackTrace();
+//            }
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor,int accuracy) {
+        }
+    };
+
+    private void makeSound () {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(1000);
+//                    System.out.println("Shake: " + shaking);
+//                    System.out.println("Wait: " + wait);
+                    // we add 100 new entries
+                    if (wait && shaking) {
+                        Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+                        Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
+                        r.play();
+                        Thread.sleep(10000);
+                        wait = false;
+                        r.stop();
+
+                    }
+                    wait = false;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+
 
 
 }

@@ -16,13 +16,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.asu.cse535.project.maps.MapFragment;
 import com.google.firebase.auth.FirebaseUser;
 
 /**
  * @author mario padilla, efren lopez
  */
 public class HomeFragment extends Fragment {
-    private boolean click = true;
+    private boolean click = false;
     private Button alertButton;
     LinearLayout layout1;
     LinearLayout layout2;
@@ -49,8 +50,14 @@ public class HomeFragment extends Fragment {
                 // Code here executes on main thread after user presses button
 
                 // Replace
-                Toast.makeText( getActivity(),"Alert!", Toast.LENGTH_SHORT).show();
-                makeSound ();
+                click = !click;
+                if(click) {
+                    alertButton.setText("Cancel");
+                    Toast.makeText( getActivity(),"Alert!", Toast.LENGTH_SHORT).show();
+                    makeSound ();
+                }
+
+
             }
         });
 
@@ -97,6 +104,7 @@ public class HomeFragment extends Fragment {
                 // Code here executes on main thread after user presses button
 
                 // Replace
+                getActivity().getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new MapFragment()).commit();
                 Toast.makeText( getActivity(),"View Safe Zone", Toast.LENGTH_SHORT).show();
             }
         });
@@ -121,13 +129,31 @@ public class HomeFragment extends Fragment {
 //                    System.out.println("Shake: " + shaking);
 //                    System.out.println("Wait: " + wait);
                     // we add 100 new entries
-                        Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-                        Ringtone r = RingtoneManager.getRingtone(getContext(), notification);
-                        r.play();
-                        Thread.sleep(10000);
-                        r.stop();
+                    Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+                    Ringtone r = RingtoneManager.getRingtone(getContext(), notification);
+                    r.play();
+                    for (int i = 50; i > 0; i--) {
+                        //Toast.makeText( getActivity(),"Cancel Alert in: " +i + " seconds", Toast.LENGTH_SHORT).show();
+                        Thread.sleep(200);
+                        if(!click){
+                            r.stop();
+                            break;
+
+                        }
+
                     }
-                     catch (Exception e) {
+                    if(click) {
+                        r.stop();
+                        click = false;
+                    }
+                    getActivity().runOnUiThread(new Runnable() {
+                        public void run() {
+                            alertButton.setText("Alert!");
+                        }
+                    });
+
+                }
+                catch (Exception e) {
                     e.printStackTrace();
                 }
             }

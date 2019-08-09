@@ -7,6 +7,15 @@ import java.util.HashMap;
  */
 public class User {
     private HashMap<String, Object> EmergencyContacts;
+    private HashMap<String, Object> Locations;
+
+    public HashMap<String, Object> getLocations() {
+        return Locations;
+    }
+
+    public void setLocations(HashMap<String, Object> locations) {
+        this.Locations = locations;
+    }
 
     public User(){
 
@@ -15,6 +24,7 @@ public class User {
     public HashMap<String, Object> getEmergencyContacts() {
         return EmergencyContacts;
     }
+
 
     public void setEmergencyContacts(HashMap<String, Object> emergencyContacts) {
         EmergencyContacts = emergencyContacts;

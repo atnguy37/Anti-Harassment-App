@@ -16,7 +16,7 @@ import java.util.ArrayList;
  */
 public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserHolder>  {
 
-  //  private HashMap<String, Object> emergencyContactStructuer;
+    //  private HashMap<String, Object> emergencyContactStructuer;
     public ArrayList<String> keys;
     public ArrayList<Object> values;
 
@@ -44,12 +44,12 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserHolder>  {
     public void onBindViewHolder(UserAdapter.UserHolder viewHolder, int position) {
 
 
-        String nameKey = keys.get(viewHolder.getAdapterPosition());
-        String phoneKey = values.get(viewHolder.getAdapterPosition()).toString();
+        String phoneKey = keys.get(viewHolder.getAdapterPosition());
+        String nameValue = values.get(viewHolder.getAdapterPosition()).toString();
 
         // Set item views based on your views and data model
         TextView nameTextView = viewHolder.name;
-        nameTextView.setText(nameKey);
+        nameTextView.setText(nameValue);
         TextView phoneText = viewHolder.phoneNumber;
         phoneText.setText(phoneKey);
 //        String key = model.getEmergencyContacts().keySet().toString();

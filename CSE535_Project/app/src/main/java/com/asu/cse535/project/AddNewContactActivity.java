@@ -75,7 +75,7 @@ public class AddNewContactActivity extends AppCompatActivity {
 
                 if(!name.isEmpty()){
                     if(!phoneNumber.isEmpty()){
-                        contactsMap.put(name, phoneNumber);
+                        contactsMap.put(phoneNumber, name);
                         UserStructureFB.put("EmergencyContacts", contactsMap);
                         AddContact();
                     }
@@ -113,7 +113,7 @@ public class AddNewContactActivity extends AppCompatActivity {
 
 
     }
-        @Override
+    @Override
     public void onStart() {
         super.onStart();
 
