@@ -1,6 +1,17 @@
 package com.asu.cse535.project;
 
+import android.app.Dialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.location.LocationManager;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -14,17 +25,23 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
+import com.asu.cse535.project.maps.MapFragment;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -42,6 +59,10 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 
+import static com.asu.cse535.project.Constant.ERROR_DIALOG_REQUEST;
+import static com.asu.cse535.project.Constant.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
+import static com.asu.cse535.project.Constant.PERMISSIONS_REQUEST_ENABLE_GPS;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,8 +72,8 @@ import java.util.Map;
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
-    private static final String TAG = "";
     private User user;
+    private static final String TAG = MainActivity.class.getSimpleName();
     int RC_SIGN_IN = 0;
     private SignInButton signInButton;
     private GoogleSignInClient GoogleSignInClient;
@@ -65,11 +86,30 @@ public class MainActivity extends AppCompatActivity
 
     Button alert;
     DocumentReference userContactsDocRef;
+    public boolean mLocationPermissionGranted = false;
+
+    // Shaking Alarm
+    private SensorManager sm;
+    private float acelVal; // current acceleration including gravity
+    private float acelLast; // last acceleration including gravity
+    private float shake; // acceleration apart from gravity
+    private boolean shaking = false;
+    private boolean wait = false;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        setContentView(R.layout.activity_main);
+
+        //Shaking Alarm
+        sm = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        sm.registerListener(sensorListener, sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
+        shake = 0.00f;
+        acelVal = SensorManager.GRAVITY_EARTH;
+        acelLast = SensorManager.GRAVITY_EARTH;
 
         //Setting the content view to activity_main.xml
         // comment
@@ -97,7 +137,7 @@ public class MainActivity extends AppCompatActivity
         mAuth = FirebaseAuth.getInstance();
         FBDB = initFirestore();
 
-        if(savedInstanceState == null){
+        if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new HomeFragment()).commit();
             navigationView.setCheckedItem(R.id.nav_home);
 
@@ -107,81 +147,87 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void addIDDocument(){
-        firebaseDB = initFirestore();
+
         AreYouSignInAccount = getAreYouSignInAccount();
 
-        String UserID = AreYouSignInAccount.getUid();
+        if(AreYouSignInAccount != null) {
+            firebaseDB = initFirestore();
+            String UserID = AreYouSignInAccount.getUid();
 
-        userContactsDocRef = firebaseDB.collection("users").document(UserID);
+            userContactsDocRef = firebaseDB.collection("users").document(UserID);
 
-        Map<String, Object> id = new HashMap<>();
-        id.put("id", UserID);
+            Map<String, Object> id = new HashMap<>();
+            id.put("id", UserID);
 
-        userContactsDocRef
-                .set(id, SetOptions.merge())
-                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
+            userContactsDocRef
+                    .set(id, SetOptions.merge())
+                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                        @Override
+                        public void onSuccess(Void aVoid) {
+                            Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
 
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
+
+                        }
+                    });
+
+
+            user = new User();
+
+            userContactsDocRef.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                @Override
+                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                    if(documentSnapshot.exists()) {
+                        user = documentSnapshot.toObject(User.class);
+                        if(user.getEmergencyContacts() == null){
+                            Map<String, Object> contactsMap = new HashMap<>();
+                            //contactsMap.put(name, phoneNumber);
+
+                            Map<String, Object> emergencyContacts = new HashMap<>();
+                            emergencyContacts.put("EmergencyContacts", contactsMap);
+
+                            userContactsDocRef
+                                    .set(emergencyContacts, SetOptions.merge())
+                                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        @Override
+                                        public void onSuccess(Void aVoid) {
+                                            Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
+
+                                        }
+                                    })
+                                    .addOnFailureListener(new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception e) {
+                                            Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
+
+                                        }
+                                    });
+                        }
+
+                    } else {
+                        //User Exists
+                        Toast.makeText(getApplicationContext(), "EC structure Exists", Toast.LENGTH_SHORT).show();
                     }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
-
-                    }
-                });
-
-
-        user = new User();
-
-        userContactsDocRef.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-            @Override
-            public void onSuccess(DocumentSnapshot documentSnapshot) {
-                if(documentSnapshot.exists()) {
-                    user = documentSnapshot.toObject(User.class);
-                    if(user.getEmergencyContacts() == null){
-                        Map<String, Object> contactsMap = new HashMap<>();
-                        //contactsMap.put(name, phoneNumber);
-
-                        Map<String, Object> emergencyContacts = new HashMap<>();
-                        emergencyContacts.put("EmergencyContacts", contactsMap);
-
-                        userContactsDocRef
-                                .set(emergencyContacts, SetOptions.merge())
-                                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                    @Override
-                                    public void onSuccess(Void aVoid) {
-                                        Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
-
-                                    }
-                                })
-                                .addOnFailureListener(new OnFailureListener() {
-                                    @Override
-                                    public void onFailure(@NonNull Exception e) {
-                                        Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
-
-                                    }
-                                });
-                    }
-
-                } else {
-                    //User Exists
-                    Toast.makeText(getApplicationContext(), "EC structure Exists", Toast.LENGTH_SHORT).show();
                 }
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
 
-            }
-        });
+                }
+            });
+
+        }
+
 
 
 
     }
+
     public FirebaseFirestore initFirestore() {
         FirebaseFirestore firebaseDB = FirebaseFirestore.getInstance();
         return firebaseDB;
@@ -194,50 +240,159 @@ public class MainActivity extends AppCompatActivity
         return signInAccount;
     }
 
-   @Override
+    private boolean checkMapServices() {
+        if (isServicesOK()) {
+            if (isMapsEnabled()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+
+    private void buildAlertMessageNoGps() {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("This application requires GPS to work properly, do you want to enable it?")
+                .setCancelable(false)
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        Intent enableGpsIntent = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                        startActivityForResult(enableGpsIntent, PERMISSIONS_REQUEST_ENABLE_GPS);
+                    }
+                });
+        final AlertDialog alert = builder.create();
+        alert.show();
+    }
+
+    public boolean isMapsEnabled(){
+        final LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
+
+        if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
+            buildAlertMessageNoGps();
+            return false;
+        }
+        return true;
+    }
+
+    private void getLocationPermission() {
+        /*
+         * Request location permission, so that we can get the location of the
+         * device. The result of the permission request is handled by a callback,
+         * onRequestPermissionsResult.
+         */
+        if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
+                android.Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            mLocationPermissionGranted = true;
+            //getChatrooms();
+        } else {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                    PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
+        }
+    }
+
+    public boolean isServicesOK(){
+        Log.d(TAG, "isServicesOK: checking google services version");
+
+        int available = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(MainActivity.this);
+
+        if(available == ConnectionResult.SUCCESS){
+            //everything is fine and the user can make map requests
+            Log.d(TAG, "isServicesOK: Google Play Services is working");
+            System.out.println("isServicesOK: Google Play Services is working");
+            return true;
+        }
+        else if(GoogleApiAvailability.getInstance().isUserResolvableError(available)){
+            //an error occured but we can resolve it
+            Log.d(TAG, "isServicesOK: an error occured but we can fix it");
+            Dialog dialog = GoogleApiAvailability.getInstance().getErrorDialog(MainActivity.this, available, ERROR_DIALOG_REQUEST);
+            dialog.show();
+        }else{
+            Toast.makeText(this, "You can't make map requests", Toast.LENGTH_SHORT).show();
+        }
+        return false;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String permissions[],
+                                           @NonNull int[] grantResults) {
+        mLocationPermissionGranted = false;
+        switch (requestCode) {
+            case PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    mLocationPermissionGranted = true;
+                    Log.d(TAG, "onRequestPermissionsResult: Everything is fine");
+                    System.out.println("onRequestPermissionsResult: Everything is fine");
+                }
+            }
+        }
+    }
+
+
+    @Override
     protected void onStart(){
 
-       mAuth = FirebaseAuth.getInstance();
-       //AreYouSignInAccount = GoogleSignIn.getLastSignedInAccount(this);
-       AreYouSignInAccount = mAuth.getCurrentUser();
+        mAuth = FirebaseAuth.getInstance();
+        //AreYouSignInAccount = GoogleSignIn.getLastSignedInAccount(this);
+        AreYouSignInAccount = mAuth.getCurrentUser();
 
-       if(AreYouSignInAccount != null) {
-           View headerView = navigationView.getHeaderView(0);
-           TextView nav_header_title = (TextView)headerView.findViewById(R.id.nav_header_titles);
-           TextView nav_header_subtitle = (TextView)headerView.findViewById(R.id.nav_header_subtitles);
-           ImageView nav_imageView = (ImageView)headerView.findViewById(R.id.nav_imageView);
+        if(AreYouSignInAccount != null) {
+            View headerView = navigationView.getHeaderView(0);
+            TextView nav_header_title = (TextView)headerView.findViewById(R.id.nav_header_titles);
+            TextView nav_header_subtitle = (TextView)headerView.findViewById(R.id.nav_header_subtitles);
+            ImageView nav_imageView = (ImageView)headerView.findViewById(R.id.nav_imageView);
 
-           String personName = AreYouSignInAccount.getDisplayName();
-           String personEmail = AreYouSignInAccount.getEmail();
-           Uri personImage = AreYouSignInAccount.getPhotoUrl();
+            String personName = AreYouSignInAccount.getDisplayName();
+            String personEmail = AreYouSignInAccount.getEmail();
+            Uri personImage = AreYouSignInAccount.getPhotoUrl();
 
-           nav_header_title.setText(personName);
-           if(personEmail != null){
-               nav_header_subtitle.setText(personEmail);
-           }
-           if(personImage != null){
-               Glide.with(this).load(personImage).fitCenter().apply(new RequestOptions().override(108, 108)).placeholder(R.drawable.ic_launcher_foreground).into(nav_imageView);
-           }
+            nav_header_title.setText(personName);
+            if(personEmail != null){
+                nav_header_subtitle.setText(personEmail);
+            }
+            if(personImage != null){
+                Glide.with(this).load(personImage).fitCenter().apply(new RequestOptions().override(108, 108)).placeholder(R.drawable.ic_launcher_foreground).into(nav_imageView);
+            }
 
 
-           navigationView.getMenu().findItem(R.id.nav_log_out).setVisible(true);
-           navigationView.getMenu().findItem(R.id.nav_home).setVisible(true);
-           navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(false);
-           navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(true);
-           navigationView.getMenu().findItem(R.id.nav_share).setVisible(true);
+            navigationView.getMenu().findItem(R.id.nav_log_out).setVisible(true);
+            navigationView.getMenu().findItem(R.id.nav_home).setVisible(true);
+            navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(false);
+            navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(true);
+            navigationView.getMenu().findItem(R.id.nav_share).setVisible(true);
+            navigationView.getMenu().findItem(R.id.nav_map).setVisible(true);
 
-       }
-       else{
-           navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(true);
-           navigationView.getMenu().findItem(R.id.nav_home).setVisible(true);
-           navigationView.getMenu().findItem(R.id.nav_log_out).setVisible(false);
-           navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(false);
-           navigationView.getMenu().findItem(R.id.nav_share).setVisible(false);
+        }
+        else{
+            navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(true);
+            navigationView.getMenu().findItem(R.id.nav_home).setVisible(true);
+            navigationView.getMenu().findItem(R.id.nav_log_out).setVisible(false);
+            navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(false);
+            navigationView.getMenu().findItem(R.id.nav_share).setVisible(false);
+            navigationView.getMenu().findItem(R.id.nav_map).setVisible(false);
 
-       }
-       super.onStart();
-   }
+        }
+        super.onStart();
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(checkMapServices()){
+            if(mLocationPermissionGranted){
+                //getChatrooms();
+                Log.d(TAG, "onActivityResult: get Location Permission.");
+            }
+            else{
+                getLocationPermission();
+            }
+        }
+    }
 
 
     //Closes the left side navigation
@@ -340,6 +495,12 @@ public class MainActivity extends AppCompatActivity
                 Toast.makeText(this, "Share", Toast.LENGTH_SHORT).show();
 
                 break;
+            case R.id.nav_map:
+                //Intent ContactsIntent = new Intent(this, SecondActivity.class);
+                //myIntent.putExtra("key", value); //Optional parameters
+                //this.startActivity(ContactsIntent);
+                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new MapFragment()).commit();
+                break;
         }
 
 
@@ -383,6 +544,16 @@ public class MainActivity extends AppCompatActivity
                 firebaseSignInWithGoogleFunction(null);
             }
         }
+
+        else if (requestCode == PERMISSIONS_REQUEST_ENABLE_GPS) {
+            if(mLocationPermissionGranted){
+                //
+                Log.d(TAG, "onActivityResult: get Location Permission.");
+            }
+            else{
+                getLocationPermission();
+            }
+        }
     }
 
     //Refresh the main activity (calls the OnStart())
@@ -413,6 +584,76 @@ public class MainActivity extends AppCompatActivity
         this.startActivity(signInIntent);
     }
 
+    private final SensorEventListener sensorListener = new SensorEventListener()
+
+    {
+        @Override
+        public void onSensorChanged(SensorEvent sensorEvent) {
+            Sensor mySensor = sensorEvent.sensor;
+
+            if (mySensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+//                index++;
+                float x = sensorEvent.values[0];
+                float y = sensorEvent.values[1];
+                float z = sensorEvent.values[2];
+                acelLast = acelVal;
+                acelVal = (float) Math.sqrt((double) (x * x + y * y + z * z));
+
+                float delta = acelVal - acelLast;
+                shake = shake * 0.9f + delta; // perform low-cut filter
+                System.out.println("Shake: " + shake);
+                if ((shake > 10 || shake < -10)) {
+//                    Toast toast = Toast.makeText(getApplicationContext(), "DO NOT SHAKE ME", Toast.LENGTH_LONG);
+//                    toast.show();
+
+//                    System.out.println("Shake In: " + shaking);
+//                    System.out.println("Wait In: " + wait);
+                    shaking = true;
+                    if (!wait) {
+                        wait = true;
+                        makeSound();
+                    }
+
+//                System.out.println("DO NOT SHAKE ME");
+                } else
+                    shaking = false;
+            }
+//            try {
+//                TimeUnit.MILLISECONDS.sleep(200);
+//            }
+//            catch (Exception e) {
+//            e.printStackTrace();
+//            }
+        }
+        @Override
+        public void onAccuracyChanged(Sensor sensor,int accuracy) {
+        }
+    };
+
+    private void makeSound () {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(1000);
+//                    System.out.println("Shake: " + shaking);
+//                    System.out.println("Wait: " + wait);
+                    // we add 100 new entries
+                    if (wait && shaking) {
+                        Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+                        Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
+                        r.play();
+                        Thread.sleep(10000);
+                        wait = false;
+                        r.stop();
+
+                    }
+                    wait = false;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
 
 }
-

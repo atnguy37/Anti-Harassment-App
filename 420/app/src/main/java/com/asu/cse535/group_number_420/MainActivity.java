@@ -125,10 +125,11 @@ public class MainActivity extends AppCompatActivity {
                 buttonStartStop = true;
                 //If not included it will create mutliple startGraph (speed it up)
                 if(buttonStart) {
-                        CreateTable();
-                        buttonStart = false;
-                        checkSensor = true;
-                        startGraph();
+                        if(CreateTable()) {
+                            buttonStart = false;
+                            checkSensor = true;
+                            startGraph();
+                        }
                 }
 
             }
@@ -249,18 +250,17 @@ public class MainActivity extends AppCompatActivity {
                 lastX = 0;
                 stopGraph();
 
+                dbHandler = new DBHelper(MainActivity.this, person);
+
                 seriesX = new LineGraphSeries<DataPoint>();
                 seriesY = new LineGraphSeries<DataPoint>();
                 seriesZ = new LineGraphSeries<DataPoint>();
-
                 //Log.d(TAG,"Checking CheckInfo ");
-                return true;
             }
             //Log.d(TAG,"Duplicate ");
-            return false;
+            return true;
         }
         Toast.makeText(MainActivity.this,"Your information is not enough", Toast.LENGTH_LONG).show();
-
         return false;
     }
 
@@ -268,7 +268,7 @@ public class MainActivity extends AppCompatActivity {
         //Log.d(TAG,"Check Info create");
         if(checkUserInfo()) {
             //Log.d(TAG, "Created DB");
-            dbHandler = new DBHelper(MainActivity.this, person);
+            dbHandler.CreateTable();
             return true;
         }
         return false;
@@ -324,7 +324,7 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
 
-            CreateTable();
+            checkUserInfo();
             Toast.makeText(MainActivity.this,"download db", Toast.LENGTH_LONG).show();
 
                 //Log.d(TAG,"CheckInfo: ");
@@ -347,12 +347,6 @@ public class MainActivity extends AppCompatActivity {
                 seriesZ = new LineGraphSeries<DataPoint>(data(results,"zvalues"));
                     //Log.d(TAG,"Load Data: " + results.toString());
                 startGraph();
-            }
-            else {
-                patientName = "";
-                patientAge = "";
-                patientSex = "";
-                patientID = "";
             }
             return true;
         }

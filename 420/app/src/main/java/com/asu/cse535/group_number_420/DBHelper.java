@@ -36,7 +36,6 @@ public class DBHelper {
         this.context = context;
         this.person = person;
         setTableName();
-        CreateTable();
 
     }
 
