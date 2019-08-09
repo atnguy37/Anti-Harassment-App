@@ -601,7 +601,7 @@ public class MainActivity extends AppCompatActivity
 
                 float delta = acelVal - acelLast;
                 shake = shake * 0.9f + delta; // perform low-cut filter
-                System.out.println("Shake: " + shake);
+                //System.out.println("Shake: " + shake);
                 if ((shake > 10 || shake < -10)) {
 //                    Toast toast = Toast.makeText(getApplicationContext(), "DO NOT SHAKE ME", Toast.LENGTH_LONG);
 //                    toast.show();
