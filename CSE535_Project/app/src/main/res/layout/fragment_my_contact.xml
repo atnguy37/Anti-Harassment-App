@@ -40,23 +40,26 @@
 
     <ImageButton
         android:id="@+id/send_msg"
-        android:layout_width="157dp"
+        android:layout_width="75dp"
         android:layout_height="64dp"
-        android:layout_gravity="bottom|center"
-        android:layout_margin="@dimen/standard_21"
+        android:layout_gravity="bottom|left"
+        android:layout_marginLeft="100dp"
+        android:layout_marginBottom="30dp"
         android:src="@drawable/ic_message_black_24dp"
 
         />
-
-    <TextView
-        android:id="@+id/textView_send_message"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center"
-        android:text="Send Message"
-        android:textSize="20dp"
+    <ImageButton
+        android:id="@+id/call"
+        android:layout_width="75dp"
+        android:layout_height="64dp"
+        android:layout_gravity="bottom|left"
+        android:layout_marginLeft="200dp"
+        android:layout_marginBottom="30dp"
+        android:src="@drawable/ic_phone"
 
         />
+
+
 
     <TextView
         android:id="@+id/fab2_text"

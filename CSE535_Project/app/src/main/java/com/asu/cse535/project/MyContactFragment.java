@@ -3,19 +3,21 @@ package com.asu.cse535.project;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.telephony.SmsManager;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -44,6 +46,7 @@ import java.util.Map;
 public class MyContactFragment extends Fragment implements UserAdapter.OnUserListener {
 
     public  static final int RequestPermissionCode  = 2 ;
+    public  static final int REQUEST_CALL  = 1 ;
 
     View view;
     FirebaseUser FireBaseSignInAccount;
@@ -68,6 +71,8 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
     String LOG = "MainActivity";
     SmsManager smgr;
     TextView textView_send_message;
+    String textMessage = "";
+    ImageView imageCall;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -80,11 +85,12 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
         firebasedb = ((MainActivity) getActivity()).initFirestore();
         UserID = FireBaseSignInAccount.getUid();
 
-        textView_send_message = view.findViewById(R.id.textView_send_message);
         send_msg = view.findViewById(R.id.send_msg);
         overlayView = view.findViewById(R.id.overlayView);
         fab1_text = view.findViewById(R.id.fab1_text);
         fab2_text = view.findViewById(R.id.fab2_text);
+        imageCall = view.findViewById(R.id.call);
+
         FloatingActionButton openMenuButton = (FloatingActionButton) view.findViewById(R.id.add_contacs);
         addNewContact = (FloatingActionButton) view.findViewById(R.id.fab1);
         addExistingContact = (FloatingActionButton) view.findViewById(R.id.fab2);
@@ -98,6 +104,14 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
                     closeButtonMenu();
                 }
             }
+        });
+
+        imageCall.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                makePhoneCall();
+            }
+
         });
 
         EnableRuntimePermission();
@@ -124,7 +138,8 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
             @Override
             public void onClick(View view) {
 
-                sendMessage();
+                SendTextMessage stm = new SendTextMessage();
+                stm.sendMessage(getActivity());
 
             }
         });
@@ -139,28 +154,6 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
     }
 
 
-    private void sendMessage(){
-        try{
-            smgr = SmsManager.getDefault();
-            keys = new ArrayList<>();
-
-            keys = new ArrayList<String>(user.getEmergencyContacts().keySet()); //phones
-
-            String textMessage = "help! my location is: xyz";
-
-            for (int i = 0; i < keys.size(); i++){
-                String phone_number = "+" + keys.get(i);
-                smgr.sendTextMessage(keys.get(i),null,textMessage,null,null);
-                Log.i(LOG, "message send to " + phone_number);
-            }
-
-            Toast.makeText(getActivity(), "SMS Sent Successfully - " + keys.size()  + " msg send", Toast.LENGTH_SHORT).show();
-        }
-        catch (Exception e){
-            Log.i(LOG, "Message failed:  " + e.toString());
-        }
-    }
-
     private void showButtonMenu(){
         overlayView.setVisibility((View.VISIBLE));
         isOpenMenuButtonOpen=true;
@@ -170,10 +163,21 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
         fab1_text.animate().translationY(-getResources().getDimension(R.dimen.standard_65));
         fab2_text.animate().translationY(-getResources().getDimension(R.dimen.standard_110));
         send_msg.setVisibility(View.GONE);
-        textView_send_message.setVisibility(View.GONE);
-
+        imageCall.setVisibility(View.GONE);
         addNewContact.animate().translationY(-getResources().getDimension(R.dimen.standard_55));
         addExistingContact.animate().translationY(-getResources().getDimension(R.dimen.standard_100));
+    }
+
+    private void makePhoneCall(){
+        String callPolice = "+602516111";
+        if(ContextCompat.checkSelfPermission(getActivity(),Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED){
+            ActivityCompat.requestPermissions(getActivity(),new String[]{Manifest.permission.CALL_PHONE}, REQUEST_CALL);
+        }
+        else{
+            String dial = "tel:" + callPolice;
+            startActivity(new Intent(Intent.ACTION_CALL, Uri.parse(dial)));
+        }
+        Toast.makeText(getActivity(),"Calling police...",Toast.LENGTH_SHORT).show();
     }
 
     private void closeButtonMenu(){
@@ -186,6 +190,7 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
 
         fab1_text.setVisibility(View.GONE);
         fab2_text.setVisibility(View.GONE);
+        imageCall.setVisibility(View.VISIBLE);
         send_msg.setVisibility(View.VISIBLE);
         textView_send_message.setVisibility(View.VISIBLE);
 
@@ -334,6 +339,15 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
                     Toast.makeText(getActivity(),"Permission Granted.", Toast.LENGTH_LONG).show();
 
                 } else {
+                    Toast.makeText(getActivity(),"Permission Canceled.", Toast.LENGTH_LONG).show();
+                }
+
+                break;
+            case REQUEST_CALL:
+                if (PResult.length > 0 && PResult[0] == PackageManager.PERMISSION_GRANTED) {
+                    makePhoneCall();
+                }
+                else {
                     Toast.makeText(getActivity(),"Permission Canceled.", Toast.LENGTH_LONG).show();
                 }
                 break;

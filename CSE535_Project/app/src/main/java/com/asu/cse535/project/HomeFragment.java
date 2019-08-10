@@ -4,6 +4,7 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.telephony.SmsManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +19,9 @@ import androidx.fragment.app.Fragment;
 
 import com.asu.cse535.project.maps.MapFragment;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.ArrayList;
 
 /**
  * @author mario padilla, efren lopez
@@ -29,6 +33,17 @@ public class HomeFragment extends Fragment {
     LinearLayout layout2;
     LinearLayout layout3;
     LinearLayout layout4;
+    SmsManager smgr;
+    User user;
+    String textMessage = "";
+    String LOG = "MainActivity";
+
+    FirebaseUser FireBaseSignInAccount;
+    FirebaseFirestore firebasedb;
+    String UserID;
+    ArrayList<String> keys;
+    ArrayList<Object> values;
+    ArrayList<String> phone_keys;
 
     @Nullable
     @Override
@@ -45,6 +60,7 @@ public class HomeFragment extends Fragment {
         layout3 = (LinearLayout) view.findViewById(R.id.layout3);
         layout4 = (LinearLayout) view.findViewById(R.id.layout4);
 
+
         alertButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 // Code here executes on main thread after user presses button
@@ -55,6 +71,9 @@ public class HomeFragment extends Fragment {
                     alertButton.setText("Cancel");
                     Toast.makeText( getActivity(),"Alert!", Toast.LENGTH_SHORT).show();
                     makeSound ();
+                    SendTextMessage stm = new SendTextMessage();
+                    stm.sendMessage(getActivity());
+
                 }
 
 
@@ -66,7 +85,6 @@ public class HomeFragment extends Fragment {
         //Access mainActivity
         FirebaseUser AreYouSignInAccount = ((MainActivity) getActivity()).getAreYouSignInAccount();
 
-
         if(AreYouSignInAccount != null) {
             test.setText("Welcome " + AreYouSignInAccount.getDisplayName());
             alertButton.setVisibility(view.VISIBLE);
@@ -75,6 +93,8 @@ public class HomeFragment extends Fragment {
             layout3.setVisibility(view.VISIBLE);
             layout4.setVisibility(view.VISIBLE);
 
+            firebasedb = ((MainActivity) getActivity()).initFirestore();
+            UserID = AreYouSignInAccount.getUid();
 
         }
 
@@ -119,6 +139,8 @@ public class HomeFragment extends Fragment {
         });
         return view;
     }
+
+
 
 
     private void makeSound () {

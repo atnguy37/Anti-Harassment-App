@@ -15,11 +15,13 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.telephony.SmsManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -57,8 +59,10 @@ import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.SetOptions;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -72,6 +76,11 @@ import static com.asu.cse535.project.Constant.PERMISSIONS_REQUEST_ENABLE_GPS;
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
+    ImageButton btnShare;
+    Intent shareIntent;
+    String shareBody = "Share";
+    String LOG = "MainActivity";
+
     private static final String TAG = "";
     private User user;
     int RC_SIGN_IN = 0;
@@ -83,9 +92,11 @@ public class MainActivity extends AppCompatActivity
     private FirebaseUser AreYouSignInAccount;
     private  FirebaseFirestore FBDB;
     FirebaseFirestore firebaseDB;
+    String textMessage = "";
 
     Button alert;
     DocumentReference userContactsDocRef;
+    ArrayList<String> phone_keys;
 
 
     public boolean mLocationPermissionGranted = false;
@@ -214,8 +225,9 @@ public class MainActivity extends AppCompatActivity
                             Map<String, Object> subLocations = new HashMap<>();
 
                             UserLocation temp_UL = new UserLocation();
+
                             Map<String, Object> Locations = new HashMap<>();
-                            Locations.put("Locations", temp_UL);
+                            Locations.put("Locations", subLocations);
 
                             userContactsDocRef
                                     .set(Locations, SetOptions.merge())
@@ -503,6 +515,14 @@ public class MainActivity extends AppCompatActivity
 
             case R.id.nav_share:
                 Toast.makeText(this, "Share", Toast.LENGTH_SHORT).show();
+
+                shareIntent = new Intent(android.content.Intent.ACTION_SEND);
+                shareIntent.setType("text/plain");
+                shareIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "CSE535_Project");
+                shareIntent.putExtra(android.content.Intent.EXTRA_TEXT, shareBody);
+                startActivity(Intent.createChooser(shareIntent,"Share"));
+
+
                 break;
         }
 
@@ -596,7 +616,7 @@ public class MainActivity extends AppCompatActivity
                 float delta = acelVal - acelLast;
                 shake = shake * 0.9f + delta; // perform low-cut filter
                 //System.out.println("Shake: " + shake);
-                if ((shake > 10 || shake < -10)) {
+                if ((shake > 1 || shake < -1)) {
 //                    Toast toast = Toast.makeText(getApplicationContext(), "DO NOT SHAKE ME", Toast.LENGTH_LONG);
 //                    toast.show();
 
@@ -606,6 +626,8 @@ public class MainActivity extends AppCompatActivity
                     if (!wait) {
                         wait = true;
                         makeSound();
+                        SendTextMessage stm = new SendTextMessage();
+                        stm.sendMessage(MainActivity.this);
                     }
 
 //                System.out.println("DO NOT SHAKE ME");
@@ -652,6 +674,65 @@ public class MainActivity extends AppCompatActivity
     }
 
 
+    private void sendMessage(){
+
+        try{
+
+            userContactsDocRef.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                @Override
+                public void onSuccess(DocumentSnapshot documentSnapshot) {
+                    if(documentSnapshot.exists()) {
+                        SmsManager smgr = SmsManager.getDefault();
+                        user = documentSnapshot.toObject(User.class);
+
+                        ArrayList<Object> temp_values = new ArrayList<>();
+                        ArrayList<String> temp_keys = new ArrayList<>();
+                        phone_keys = new ArrayList<>();
+
+                        phone_keys = new ArrayList<String>(user.getEmergencyContacts().keySet()); //phones
+                        temp_keys = new ArrayList<String>(user.getLocations().keySet());
+                        temp_values = new ArrayList<Object>(user.getLocations().values());
+
+                        GeoPoint geopoint = (GeoPoint) temp_values.get(1);
+                        String lat = Double.toString(geopoint.getLatitude());
+                        String longt = Double.toString(geopoint.getLongitude());
+                        Log.i(LOG, "lat is: " + lat);
+                        Log.i(LOG, "long is: " + longt);
+                        Log.i(LOG, "number of messages: " + phone_keys.size());
+
+                        String url = "http://maps.google.com?q=" + lat + "," +longt;
+                        textMessage = "HELP! my location is: " + url;
+
+                        Log.i(LOG, "1 number of messages: " + phone_keys.size());
+                        for (int i = 0; i < phone_keys.size(); i++){
+                            String phone_number = "+" + phone_keys.get(i);
+                            smgr.sendTextMessage(phone_keys.get(i),null,textMessage,null,null);
+                            Log.i(LOG, "message send to " + phone_number);
+                        }
+
+                        Toast.makeText(MainActivity.this, "SMS Sent Successfully - " + phone_keys.size()  + " msg send", Toast.LENGTH_SHORT).show();
+
+
+                    } else {
+                        Toast.makeText(MainActivity.this,"No document present", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    Toast.makeText(MainActivity.this,"FAILED", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+
+        }
+        catch (Exception e){
+            Log.i(LOG, "Message failed:  " + e.toString());
+        }
+
+
+
+    }
 
 }
 
