@@ -248,6 +248,29 @@ public class MainActivity extends AppCompatActivity
                                     });
                         }
 
+                        if(user.getFeedback() == null){
+                            Map<String, Object> FeedbackMap = new HashMap<>();
+
+                            Map<String, Object> FeedbackStructure = new HashMap<>();
+                            FeedbackStructure.put("Feedback", FeedbackMap);
+
+                            userContactsDocRef
+                                    .set(FeedbackStructure, SetOptions.merge())
+                                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        @Override
+                                        public void onSuccess(Void aVoid) {
+                                            //  Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
+
+                                        }
+                                    })
+                                    .addOnFailureListener(new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception e) {
+                                            //Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
+
+                                        }
+                                    });
+                        }
 
                     } else {
                         //User Exists
@@ -309,7 +332,7 @@ public class MainActivity extends AppCompatActivity
            navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(false);
            navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_map).setVisible(true);
-
+           navigationView.getMenu().findItem(R.id.feedback).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_share).setVisible(true);
 
        }
@@ -320,6 +343,7 @@ public class MainActivity extends AppCompatActivity
            navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(false);
            navigationView.getMenu().findItem(R.id.nav_map).setVisible(false);
            navigationView.getMenu().findItem(R.id.nav_share).setVisible(false);
+           navigationView.getMenu().findItem(R.id.feedback).setVisible(false);
 
        }
        super.onStart();
@@ -524,6 +548,10 @@ public class MainActivity extends AppCompatActivity
                 startActivity(Intent.createChooser(shareIntent,"Share"));
 
 
+                break;
+            case R.id.feedback:
+                Toast.makeText(this, "feedback", Toast.LENGTH_SHORT).show();
+                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new FeedbackFragment()).commit();
                 break;
         }
 
