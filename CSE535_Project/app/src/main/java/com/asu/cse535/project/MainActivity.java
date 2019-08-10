@@ -15,7 +15,6 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.telephony.SmsManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -34,6 +33,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.FragmentManager;
 
 import com.asu.cse535.project.maps.MapFragment;
 import com.bumptech.glide.Glide;
@@ -59,7 +59,6 @@ import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.SetOptions;
 
 import java.util.ArrayList;
@@ -107,7 +106,7 @@ public class MainActivity extends AppCompatActivity
     private float acelLast; // last acceleration including gravity
     private float shake; // acceleration apart from gravity
     private boolean shaking = false;
-    private boolean wait = false;
+    public boolean wait = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -156,6 +155,8 @@ public class MainActivity extends AppCompatActivity
         }
 
         addIDDocument();
+
+
     }
 
     public void addIDDocument(){
@@ -625,9 +626,15 @@ public class MainActivity extends AppCompatActivity
                     shaking = true;
                     if (!wait) {
                         wait = true;
-                        makeSound();
-                        SendTextMessage stm = new SendTextMessage();
-                        stm.sendMessage(MainActivity.this);
+                        //makeSound();
+                       // SendTextMessage stm = new SendTextMessage();
+                        //stm.sendMessage(MainActivity.this, false);
+
+                        HomeFragment fragment = (HomeFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+                        FragmentManager fm = getSupportFragmentManager();
+
+                        fragment.ClickFunction();
+
                     }
 
 //                System.out.println("DO NOT SHAKE ME");
@@ -647,12 +654,14 @@ public class MainActivity extends AppCompatActivity
         }
     };
 
+
+    //Not using it :(
     private void makeSound () {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    Thread.sleep(1000);
+                    //Thread.sleep(1000);
 //                    System.out.println("Shake: " + shaking);
 //                    System.out.println("Wait: " + wait);
                     // we add 100 new entries
@@ -671,67 +680,6 @@ public class MainActivity extends AppCompatActivity
                 }
             }
         }).start();
-    }
-
-
-    private void sendMessage(){
-
-        try{
-
-            userContactsDocRef.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                @Override
-                public void onSuccess(DocumentSnapshot documentSnapshot) {
-                    if(documentSnapshot.exists()) {
-                        SmsManager smgr = SmsManager.getDefault();
-                        user = documentSnapshot.toObject(User.class);
-
-                        ArrayList<Object> temp_values = new ArrayList<>();
-                        ArrayList<String> temp_keys = new ArrayList<>();
-                        phone_keys = new ArrayList<>();
-
-                        phone_keys = new ArrayList<String>(user.getEmergencyContacts().keySet()); //phones
-                        temp_keys = new ArrayList<String>(user.getLocations().keySet());
-                        temp_values = new ArrayList<Object>(user.getLocations().values());
-
-                        GeoPoint geopoint = (GeoPoint) temp_values.get(1);
-                        String lat = Double.toString(geopoint.getLatitude());
-                        String longt = Double.toString(geopoint.getLongitude());
-                        Log.i(LOG, "lat is: " + lat);
-                        Log.i(LOG, "long is: " + longt);
-                        Log.i(LOG, "number of messages: " + phone_keys.size());
-
-                        String url = "http://maps.google.com?q=" + lat + "," +longt;
-                        textMessage = "HELP! my location is: " + url;
-
-                        Log.i(LOG, "1 number of messages: " + phone_keys.size());
-                        for (int i = 0; i < phone_keys.size(); i++){
-                            String phone_number = "+" + phone_keys.get(i);
-                            smgr.sendTextMessage(phone_keys.get(i),null,textMessage,null,null);
-                            Log.i(LOG, "message send to " + phone_number);
-                        }
-
-                        Toast.makeText(MainActivity.this, "SMS Sent Successfully - " + phone_keys.size()  + " msg send", Toast.LENGTH_SHORT).show();
-
-
-                    } else {
-                        Toast.makeText(MainActivity.this,"No document present", Toast.LENGTH_SHORT).show();
-                    }
-                }
-            }).addOnFailureListener(new OnFailureListener() {
-                @Override
-                public void onFailure(@NonNull Exception e) {
-                    Toast.makeText(MainActivity.this,"FAILED", Toast.LENGTH_SHORT).show();
-                }
-            });
-
-
-        }
-        catch (Exception e){
-            Log.i(LOG, "Message failed:  " + e.toString());
-        }
-
-
-
     }
 
 }

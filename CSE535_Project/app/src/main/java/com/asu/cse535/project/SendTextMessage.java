@@ -45,7 +45,7 @@ public class SendTextMessage {
 
 
 
-    public void sendMessage(final Context context){
+    public void sendMessage(final Context context, final Boolean cancel){
 
         try{
             firebaseDB = FirebaseFirestore.getInstance();
@@ -79,8 +79,15 @@ public class SendTextMessage {
                         Log.i(LOG, "long is: " + longt);
                         Log.i(LOG, "number of messages: " + phone_keys.size());
 
-                        String url = "http://maps.google.com?q=" + lat + "," +longt;
-                        textMessage = "HELP! my location is: " + url;
+                        if (cancel == false){
+                            String url = "http://maps.google.com?q=" + lat + "," +longt;
+                            textMessage = "HELP! my location is: " + url;
+
+                        }
+                        else{
+                            textMessage = "FALSE ALARM IGNORE!!!!!!";
+
+                        }
 
                         Log.i(LOG, "1 number of messages: " + phone_keys.size());
                         for (int i = 0; i < phone_keys.size(); i++){

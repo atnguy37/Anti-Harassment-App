@@ -139,7 +139,7 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
             public void onClick(View view) {
 
                 SendTextMessage stm = new SendTextMessage();
-                stm.sendMessage(getActivity());
+                stm.sendMessage(getActivity(), false);
 
             }
         });
