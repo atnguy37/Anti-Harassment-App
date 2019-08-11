@@ -1,4 +1,4 @@
-package com.asu.cse535.group_number_420;
+package com.asu.cse535.group_number_420.Assignment2;
 
 import android.content.ContentValues;
 import android.content.Context;

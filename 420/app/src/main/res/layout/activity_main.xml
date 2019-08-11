@@ -1,257 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:fitsSystemWindows="true"
+    tools:openDrawer="start">
 
-    <Button
-        android:id="@+id/button_start"
-        android:layout_width="75dp"
-        android:layout_height="35dp"
-        android:layout_marginStart="1dp"
-        android:layout_marginTop="3dp"
-        android:layout_marginEnd="1dp"
-        android:layout_marginBottom="8dp"
-        android:background="@android:color/holo_green_light"
-        android:text="Run"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.954"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.0" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-    <Button
-        android:id="@+id/button_stop"
-        android:layout_width="75dp"
-        android:layout_height="35dp"
-        android:layout_alignParentBottom="true"
-        android:layout_marginStart="1dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="1dp"
-        android:layout_marginBottom="8dp"
-        android:background="@android:color/holo_red_light"
-        android:text="Stop"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.954"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.078" />
+        <com.google.android.material.appbar.AppBarLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:theme="@style/AppTheme.AppBarOverlay">
 
-    <RelativeLayout
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="?attr/colorPrimary"
+                app:popupTheme="@style/AppTheme.PopupOverlay" />
+
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <FrameLayout
+            android:id="@+id/fragment_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+        </FrameLayout>
+    </LinearLayout>
+
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/nav_view"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginRight="16dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button_stop"
-        app:layout_constraintVertical_bias="0.016">
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:fitsSystemWindows="true"
+        app:menu="@menu/activity_main_drawer" />
 
-        <TextView
-            android:id="@+id/legend"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="LEGEND"
-            android:textColor="@android:color/black" />
-
-        <TextView
-            android:id="@+id/x_values"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/legend"
-            android:text="X_VALUES"
-            android:textColor="@android:color/holo_blue_dark" />
-
-        <TextView
-            android:id="@+id/y_values"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/x_values"
-            android:text="Y_VALUES"
-            android:textColor="@android:color/holo_green_light" />
-
-        <TextView
-            android:id="@+id/z_values"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/y_values"
-            android:text="Z_VALUES"
-            android:textColor="@android:color/holo_red_dark" />
-    </RelativeLayout>
-
-
-    <RelativeLayout
-        android:id="@+id/linearLayout"
-        android:layout_width="361dp"
-        android:layout_height="89dp"
-        android:background="@color/gray"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <TextView
-            android:id="@+id/label_patient_id"
-            android:layout_width="wrap_content"
-            android:layout_height="24dp"
-            android:layout_marginTop="0dp"
-            android:paddingLeft="5dp"
-            android:paddingRight="10dp"
-            android:text="@string/patient_id"
-            android:textColor="@android:color/black"
-            android:textSize="14sp"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <EditText
-            android:id="@+id/patient_id"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="0dp"
-            android:layout_toRightOf="@+id/label_patient_id"
-            android:ems="6"
-            android:inputType="text"
-            android:textSize="10sp" />
-
-        <TextView
-            android:id="@+id/label_patient_name"
-            android:layout_width="wrap_content"
-            android:layout_height="24dp"
-            android:layout_below="@id/patient_id"
-            android:layout_marginTop="-4dp"
-            android:paddingLeft="5dp"
-            android:paddingRight="10dp"
-            android:text="@string/patient_name"
-            android:textColor="@android:color/black"
-            android:textSize="14sp"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <EditText
-            android:id="@+id/patient_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/patient_id"
-            android:layout_marginLeft="-1dp"
-            android:layout_marginTop="-9dp"
-            android:layout_toRightOf="@+id/label_patient_name"
-            android:ems="6"
-            android:inputType="text"
-            android:text="name1"
-            android:textSize="10sp" />
-
-        <TextView
-            android:id="@+id/label_patient_age"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/patient_name"
-            android:layout_marginTop="1dp"
-            android:paddingLeft="5dp"
-            android:paddingRight="10dp"
-            android:text="@string/patient_age"
-            android:textColor="@android:color/black"
-            android:textSize="14sp"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <EditText
-            android:id="@+id/patient_age"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/patient_name"
-            android:layout_marginLeft="3dp"
-            android:layout_marginTop="-9dp"
-            android:layout_toRightOf="@+id/label_patient_age"
-            android:ems="6"
-            android:inputType="text"
-            android:selectAllOnFocus="true"
-            android:text="21"
-            android:textSize="10dp" />
-
-        <RadioGroup
-            android:id="@+id/radioButtonGroup"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-
-            android:layout_marginLeft="0dp"
-            android:layout_marginTop="0dp"
-            android:layout_toRightOf="@id/patient_name"
-
-
-            >
-
-            <TextView
-                android:id="@+id/label_sex"
-                android:layout_width="wrap_content"
-                android:layout_height="24dp"
-                android:layout_marginTop="1dp"
-                android:text="@string/patient_sex"
-                android:textColor="@android:color/black"
-                android:textSize="14sp"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <RadioButton
-                android:id="@+id/radioButton_female"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Female"
-                android:textSize="10sp" />
-
-            <RadioButton
-                android:id="@+id/radioButton_male"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Male"
-                android:textSize="10sp" />
-
-        </RadioGroup>
-    </RelativeLayout>
-    <!--<Button-->
-    <!--android:id="@+id/button_reset"-->
-    <!--android:layout_width="wrap_content"-->
-    <!--android:layout_height="53dp"-->
-    <!--android:layout_marginStart="5dp"-->
-    <!--android:layout_marginTop="8dp"-->
-    <!--android:layout_marginEnd="5dp"-->
-    <!--android:layout_marginBottom="8dp"-->
-    <!--app:layout_constraintBottom_toBottomOf="parent"-->
-    <!--app:layout_constraintHorizontal_bias="0.5"-->
-    <!--app:layout_constraintStart_toEndOf="@+id/button_start_stop"-->
-    <!--app:layout_constraintTop_toTopOf="parent"-->
-    <!--app:layout_constraintVertical_bias="0.04"-->
-    <!--android:text="reset"-->
-    <!--android:visibility="invisible"-->
-    <!--tools:visibility="visible" />-->
-
-
-    <com.jjoe64.graphview.GraphView
-        android:id="@+id/graph"
-        android:layout_width="360dp"
-        android:layout_height="410dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/linearLayout"
-        app:layout_constraintVertical_bias="0.0" />
-
-    <!-- <com.jjoe64.graphview.GraphView
-         android:id="@+id/graph_2"
-         android:layout_width="match_parent"
-         android:layout_height="135dp"
-         app:layout_constraintBottom_toBottomOf="parent"
-         app:layout_constraintEnd_toEndOf="parent"
-         app:layout_constraintTop_toBottomOf="@+id/graph"
-         app:layout_constraintVertical_bias="0.056" />
-
-     <com.jjoe64.graphview.GraphView
-         android:id="@+id/graph_3"
-         android:layout_width="match_parent"
-         android:layout_height="135dp"
-         app:layout_constraintBottom_toBottomOf="parent"
-         app:layout_constraintEnd_toEndOf="parent"
-         app:layout_constraintTop_toBottomOf="@+id/graph"
-         app:layout_constraintVertical_bias="0.936" />-->
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.drawerlayout.widget.DrawerLayout>
