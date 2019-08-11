@@ -2,6 +2,8 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent"
     android:background="@android:color/white"
+    android:id="@+id/hf"
+
     >
 
 
@@ -54,6 +56,7 @@
             android:textSize="15dp"
             android:textStyle="bold" />
     </LinearLayout>
+
 
     <LinearLayout
         android:id="@+id/layout2"

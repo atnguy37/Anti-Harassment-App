@@ -9,6 +9,16 @@ public class User {
     private HashMap<String, Object> EmergencyContacts;
     private HashMap<String, Object> Locations;
 
+    public HashMap<String, Object> getFeedback() {
+        return Feedback;
+    }
+
+    public void setFeedback(HashMap<String, Object> feedback) {
+        Feedback = feedback;
+    }
+
+    private HashMap<String, Object> Feedback;
+
     public HashMap<String, Object> getLocations() {
         return Locations;
     }

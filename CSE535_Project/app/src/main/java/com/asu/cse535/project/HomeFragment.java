@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.telephony.SmsManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,6 +30,9 @@ import androidx.fragment.app.Fragment;
 
 import com.asu.cse535.project.maps.MapFragment;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.ArrayList;
 
 import java.util.ArrayList;
 import java.util.Locale;
@@ -45,6 +49,17 @@ public class HomeFragment extends Fragment {
     LinearLayout layout2;
     LinearLayout layout3;
     LinearLayout layout4;
+    SmsManager smgr;
+    User user;
+    String textMessage = "";
+    String LOG = "MainActivity";
+
+    FirebaseUser FireBaseSignInAccount;
+    FirebaseFirestore firebasedb;
+    String UserID;
+    ArrayList<String> keys;
+    ArrayList<Object> values;
+    ArrayList<String> phone_keys;
 
 
     private SpeechRecognizer speechRecognizer;
@@ -90,17 +105,21 @@ public class HomeFragment extends Fragment {
                 // Code here executes on main thread after user presses button
 
                 // Replace
-
-
+                System.out.println("Click on Listener: " + click);
                 if(!click) {
                     click = !click;
                     alertButton.setText("Cancel");
                     Toast.makeText( getActivity(),"Alert!", Toast.LENGTH_SHORT).show();
                     makeSound ();
+                    SendTextMessage stm = new SendTextMessage();
+                    stm.sendMessage(getActivity(), false);
                 }
-                else {
+                else{
                     showAuthenticationScreen();
+                    SendTextMessage stm = new SendTextMessage();
+                    stm.sendMessage(getActivity(), true);
                 }
+
 
 
             }
@@ -113,7 +132,6 @@ public class HomeFragment extends Fragment {
         //Access mainActivity
         FirebaseUser AreYouSignInAccount = ((MainActivity) getActivity()).getAreYouSignInAccount();
 
-
         if(AreYouSignInAccount != null) {
             test.setText("Welcome " + AreYouSignInAccount.getDisplayName());
             alertButton.setVisibility(view.VISIBLE);
@@ -122,6 +140,8 @@ public class HomeFragment extends Fragment {
             layout3.setVisibility(view.VISIBLE);
             layout4.setVisibility(view.VISIBLE);
 
+            firebasedb = ((MainActivity) getActivity()).initFirestore();
+            UserID = AreYouSignInAccount.getUid();
 
         }
 
@@ -230,6 +250,70 @@ public class HomeFragment extends Fragment {
     }
 
 
+    //Used for the shaking mechanism in the Main activity
+    public void ClickFunction(){
+        System.out.println("Click Function");
+        alertButton.setText("Cancel");
+
+//        click = !click;
+//        if(click) {
+//            SendTextMessage stm = new SendTextMessage();
+//            stm.sendMessage(getActivity(), false);
+//
+//            alertButton.setText("Cancel");
+//            makeSound_shake ();
+//
+//            //Toast.makeText( getActivity(),"Alert!", Toast.LENGTH_SHORT).show();
+//        }
+//        else{
+//            SendTextMessage stm = new SendTextMessage();
+//            stm.sendMessage(getActivity(), true);
+//        }
+
+    }
+
+    private void makeSound_shake () {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+//                    System.out.println("Shake: " + shaking);
+//                    System.out.println("Wait: " + wait);
+                    // we add 100 new entries
+                    Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+                    Ringtone r = RingtoneManager.getRingtone(getContext(), notification);
+                    r.play();
+                    for (int i = 50; i > 0; i--) {
+                        //Toast.makeText( getActivity(),"Cancel Alert in: " +i + " seconds", Toast.LENGTH_SHORT).show();
+                        Thread.sleep(200);
+                        if(!click){
+                            r.stop();
+                            ((MainActivity) getActivity()).wait = false;
+                            break;
+
+                        }
+
+                    }
+                    if(click) {
+                        r.stop();
+                        ((MainActivity) getActivity()).wait = false;
+                        click = false;
+                    }
+                    getActivity().runOnUiThread(new Runnable() {
+                        public void run() {
+                            alertButton.setText("Alert!");
+                        }
+                    });
+
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+
+
     private void makeSound () {
         new Thread(new Runnable() {
             @Override
@@ -238,31 +322,31 @@ public class HomeFragment extends Fragment {
 //                    System.out.println("Shake: " + shaking);
 //                    System.out.println("Wait: " + wait);
                     // we add 100 new entries
-                        Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-                        Ringtone r = RingtoneManager.getRingtone(getContext(), notification);
-                        r.play();
-                        for (int i = 50; i > 0; i--) {
-                            //Toast.makeText( getActivity(),"Cancel Alert in: " +i + " seconds", Toast.LENGTH_SHORT).show();
-                            Thread.sleep(200);
-                            if(!click){
-                                r.stop();
-                                break;
-
-                            }
-
-                        }
-                        if(click) {
+                    Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+                    Ringtone r = RingtoneManager.getRingtone(getContext(), notification);
+                    r.play();
+                    for (int i = 50; i > 0; i--) {
+                        //Toast.makeText( getActivity(),"Cancel Alert in: " +i + " seconds", Toast.LENGTH_SHORT).show();
+                        Thread.sleep(200);
+                        if(!click){
                             r.stop();
-                            click = false;
+                            break;
+
                         }
+
+                    }
+                    if(click) {
+                        r.stop();
+                        click = false;
+                    }
                     getActivity().runOnUiThread(new Runnable() {
                         public void run() {
                             alertButton.setText("Alert!");
                         }
                     });
 
-                    }
-                     catch (Exception e) {
+                }
+                catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -325,8 +409,13 @@ public class HomeFragment extends Fragment {
 
 //        receive = getIntent();
 //        click = receive.getBooleanExtra("Click",false);
-        if(this.getArguments()!= null)
+        if(this.getArguments()!= null) {
             click = this.getArguments().getBoolean("Alert",false);
+            System.out.println("receive something in Home");
+            System.out.println("Click in resume: " + click);
+            this.getArguments().remove("Alert");
+        }
+
         if(click)
             alertButton.setText("Cancel");
 
@@ -367,14 +456,16 @@ public class HomeFragment extends Fragment {
         if (requestCode == REQUEST_CODE_CONFIRM_DEVICE_CREDENTIALS) {
             // Challenge completed, proceed with using cipher
             if (resultCode == RESULT_OK) {
-                {
-                    click = !click;
-                    alertButton.setText("Alert");
+                {   System.out.println("Click on authen: " + click);
+                    if(click) {
+                        click = !click;
+                        alertButton.setText("Alert");
 //                    send = new Intent(getActivity(),MainActivity.class);
 //                    send.putExtra("Click",click);
 //                    System.out.println("Click Home: " + click);
 //                    startActivity(send);
-                    MainActivity.updateAlert(click);
+                        MainActivity.updateAlert(click);
+                    }
                 }
             } else {
                 // The user canceled or didn’t complete the lock screen

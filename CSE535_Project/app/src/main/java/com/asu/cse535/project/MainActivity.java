@@ -27,6 +27,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -39,6 +40,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 
 import com.asu.cse535.project.maps.MapFragment;
 import com.bumptech.glide.Glide;
@@ -81,6 +84,12 @@ import static com.asu.cse535.project.Constant.PERMISSIONS_REQUEST_ENABLE_GPS;
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
+    ImageButton btnShare;
+    Intent shareIntent;
+    String shareBody = "Share";
+    String LOG = "MainActivity";
+
+    //private static final String TAG = "";
     private User user;
     private static final String TAG = MainActivity.class.getSimpleName();
     int RC_SIGN_IN = 0;
@@ -92,10 +101,13 @@ public class MainActivity extends AppCompatActivity
     private FirebaseUser AreYouSignInAccount;
     private  FirebaseFirestore FBDB;
     FirebaseFirestore firebaseDB;
+    String textMessage = "";
 
     Button alert;
     DocumentReference userContactsDocRef;
+    ArrayList<String> phone_keys;
 
+    private HomeFragment fragInfo;
 
     public boolean mLocationPermissionGranted = false;
 
@@ -115,8 +127,9 @@ public class MainActivity extends AppCompatActivity
     private byte count;
     private long startMillis=0;
 
-    private static boolean wait = true;
+    //private static boolean wait = true;
     Bundle send;
+    public static boolean wait = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -158,106 +171,16 @@ public class MainActivity extends AppCompatActivity
         mAuth = FirebaseAuth.getInstance();
         FBDB = initFirestore();
 
-        if (savedInstanceState == null) {
-            System.out.println("savedInstanceState");
-            getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new HomeFragment()).commit();
+        if(savedInstanceState == null){
+            getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new HomeFragment(),"HomeFragment").commit();
             navigationView.setCheckedItem(R.id.nav_home);
 
         }
 
         addIDDocument();
 
-
         requestAudioPermissions();
 
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(MainActivity.this);
-
-        promptSpeechInput();
-        speechRecognizer.setRecognitionListener(new RecognitionListener() {
-            @Override
-            public void onReadyForSpeech(Bundle bundle) {
-
-            }
-
-            @Override
-            public void onBeginningOfSpeech() {
-
-            }
-
-            @Override
-            public void onRmsChanged(float v) {
-
-            }
-
-            @Override
-            public void onBufferReceived(byte[] bytes) {
-
-            }
-
-            @Override
-            public void onEndOfSpeech() {
-
-            }
-
-            @Override
-            public void onError(int i) {
-
-            }
-
-            @Override
-            public void onResults(Bundle bundle) {
-                ArrayList<String> result = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                if(result != null) {
-                    Toast.makeText(getApplicationContext(),"Result: " + result.get(0), Toast.LENGTH_SHORT).show();
-                }
-
-            }
-
-            @Override
-            public void onPartialResults(Bundle bundle) {
-
-            }
-
-            @Override
-            public void onEvent(int i, Bundle bundle) {
-
-            }
-        });
-        drawer.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                switch (motionEvent.getAction())
-                {
-                    case MotionEvent.ACTION_UP:
-                        break;
-
-
-                    case MotionEvent.ACTION_DOWN:
-                        long time= System.currentTimeMillis();
-
-
-                        //if it is the first time, or if it has been more than 3 seconds since the first tap ( so it is like a new try), we reset everything
-                        if (startMillis==0 || (time-startMillis> 3000) ) {
-                            startMillis=time;
-                            count=1;
-                        }
-                        //it is not the first, and it has been  less than 3 seconds since the first
-                        else{ //  time-startMillis< 3000
-                            count++;
-                        }
-
-                        if (count==3) {
-                            //do whatever you need
-                            speechRecognizer.startListening(speechRecognizerIntent);
-                            count = 0;
-                        }
-
-                        break;
-                }
-                return false;
-            }
-        });
-//        lockScreenPermission();
 
     }
 
@@ -265,7 +188,7 @@ public class MainActivity extends AppCompatActivity
         firebaseDB = initFirestore();
         AreYouSignInAccount = getAreYouSignInAccount();
 
-        if (AreYouSignInAccount != null) {
+        if (AreYouSignInAccount != null){
             String UserID = AreYouSignInAccount.getUid();
 
             userContactsDocRef = firebaseDB.collection("users").document(UserID);
@@ -328,8 +251,9 @@ public class MainActivity extends AppCompatActivity
                             Map<String, Object> subLocations = new HashMap<>();
 
                             UserLocation temp_UL = new UserLocation();
+
                             Map<String, Object> Locations = new HashMap<>();
-                            Locations.put("Locations", temp_UL);
+                            Locations.put("Locations", subLocations);
 
                             userContactsDocRef
                                     .set(Locations, SetOptions.merge())
@@ -349,6 +273,29 @@ public class MainActivity extends AppCompatActivity
                                     });
                         }
 
+                        if(user.getFeedback() == null){
+                            Map<String, Object> FeedbackMap = new HashMap<>();
+
+                            Map<String, Object> FeedbackStructure = new HashMap<>();
+                            FeedbackStructure.put("Feedback", FeedbackMap);
+
+                            userContactsDocRef
+                                    .set(FeedbackStructure, SetOptions.merge())
+                                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        @Override
+                                        public void onSuccess(Void aVoid) {
+                                            //  Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
+
+                                        }
+                                    })
+                                    .addOnFailureListener(new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception e) {
+                                            //Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
+
+                                        }
+                                    });
+                        }
 
                     } else {
                         //User Exists
@@ -408,7 +355,7 @@ public class MainActivity extends AppCompatActivity
            navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(false);
            navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_map).setVisible(true);
-
+           navigationView.getMenu().findItem(R.id.feedback).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_share).setVisible(true);
 
        }
@@ -419,6 +366,7 @@ public class MainActivity extends AppCompatActivity
            navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(false);
            navigationView.getMenu().findItem(R.id.nav_map).setVisible(false);
            navigationView.getMenu().findItem(R.id.nav_share).setVisible(false);
+           navigationView.getMenu().findItem(R.id.feedback).setVisible(false);
 
        }
        super.onStart();
@@ -457,19 +405,8 @@ public class MainActivity extends AppCompatActivity
                 getLocationPermission();
             }
         }
-        System.out.println("onResume Main called");
-
     }
 
-    @Override
-    protected void onStop() {
-
-        super.onStop();
-        //Toast.makeText(getApplicationContext(), "onPause called", Toast.LENGTH_LONG).show();
-//        startActivity(new Intent(MainActivity.this,VoiceActivity.class));
-        System.out.println("onStop Main called");
-
-    }
 
     private boolean checkMapServices() {
         if (isServicesOK()) {
@@ -574,8 +511,11 @@ public class MainActivity extends AppCompatActivity
 
         switch(id){
             case R.id.nav_home:
-                System.out.println("R.id.nav_home");
-                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new HomeFragment()).commit();
+                send = new Bundle();
+                send.putBoolean("Alert",wait);
+                fragInfo = new HomeFragment();
+                fragInfo.setArguments(send);
+                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragInfo, "HomeFragment").commit();
                 break;
             case R.id.nav_my_contacts:
 
@@ -619,13 +559,26 @@ public class MainActivity extends AppCompatActivity
                     }
                 });
 
-
-
-
                 break;
+
+            case R.id.nav_map:
+                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new MapFragment()).commit();
+                break;
+
             case R.id.nav_share:
                 Toast.makeText(this, "Share", Toast.LENGTH_SHORT).show();
 
+                shareIntent = new Intent(android.content.Intent.ACTION_SEND);
+                shareIntent.setType("text/plain");
+                shareIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "CSE535_Project");
+                shareIntent.putExtra(android.content.Intent.EXTRA_TEXT, shareBody);
+                startActivity(Intent.createChooser(shareIntent,"Share"));
+
+
+                break;
+            case R.id.feedback:
+                Toast.makeText(this, "feedback", Toast.LENGTH_SHORT).show();
+                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new FeedbackFragment()).commit();
                 break;
         }
 
@@ -732,12 +685,19 @@ public class MainActivity extends AppCompatActivity
 //                    Toast toast = Toast.makeText(getApplicationContext(), "DO NOT SHAKE ME", Toast.LENGTH_LONG);
 //                    toast.show();
 
-                    System.out.println("Shake In: " + shaking);
-                    System.out.println("Wait In: " + wait);
+//                    System.out.println("Shake In: " + shaking);
+//                    System.out.println("Wait In: " + wait);
                     shaking = true;
                     if (!wait) {
                         wait = true;
                         makeSound();
+                        SendTextMessage stm = new SendTextMessage();
+                        stm.sendMessage(MainActivity.this, false);
+
+//                        HomeFragment fragment = (HomeFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+//                        FragmentManager fm = getSupportFragmentManager();
+//
+//                        fragment.ClickFunction();
                     }
 
 //                System.out.println("DO NOT SHAKE ME");
@@ -756,6 +716,8 @@ public class MainActivity extends AppCompatActivity
         }
     };
 
+
+    //Not using it :(
     private void makeSound () {
         new Thread(new Runnable() {
             @Override
@@ -770,18 +732,10 @@ public class MainActivity extends AppCompatActivity
                         Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
                         r.play();
 
-                        send = new Bundle();
-                        send.putBoolean("Alert",true);
-                        HomeFragment fragInfo = new HomeFragment();
-                        fragInfo.setArguments(send);
-                        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragInfo).commit();
-
-
-
                         for (int i = 50; i > 0; i--) {
 //                            receive = getIntent();
 //                            boolean click = receive.getBooleanExtra("Click",true);
-                            System.out.println("Click Main: " + wait);
+                            //System.out.println("Click Main: " + wait);
                             //System.out.println("Cancel Alert in: " +i + " seconds");
                             Thread.sleep(200);
                             if(!wait){
@@ -792,14 +746,25 @@ public class MainActivity extends AppCompatActivity
                         }
 
                         r.stop();
+
+                        Fragment fragment = getSupportFragmentManager().findFragmentByTag("HomeFragment");
+                        if(fragment!=null && fragment.isVisible())
+                        {   wait = false;
+                            System.out.println("HomeFragment is running");
+                            System.out.println("Wait Before Send: " + wait);
+                            send = new Bundle();
+                            send.putBoolean("Alert",wait);
+                            fragInfo = new HomeFragment();
+                            fragInfo.setArguments(send);
+                            getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragInfo, "HomeFragment").commit();
+                        }
+                        else
+                        {
+                            System.out.println("OtherFragment is running");
+                            //do your code here
+                        }
                     }
                     wait = false;
-
-                    send.putBoolean("Alert",false);
-                    HomeFragment fragInfo = new HomeFragment();
-                    fragInfo.setArguments(send);
-                    getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragInfo).commit();
-
 
 //                    send.putBoolean("Alert",wait);
 //                    HomeFragment fragInfo = new HomeFragment();
@@ -814,21 +779,21 @@ public class MainActivity extends AppCompatActivity
         }).start();
     }
 
-    private void promptSpeechInput() {
-        speechRecognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-//        intent.putExtra(RecognizerIntent.EXTRA_PROMPT,
-//                getString(R.string.speech_prompt));
-//        try {
-//            startActivityForResult(intent, REQ_CODE_SPEECH_INPUT);
-//        } catch (ActivityNotFoundException a) {
-//            Toast.makeText(getApplicationContext(),
-//                    getString(R.string.speech_not_supported),
-//                    Toast.LENGTH_SHORT).show();
-//        }
-    }
+//    private void promptSpeechInput() {
+//        speechRecognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+//        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+//                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+//        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+////        intent.putExtra(RecognizerIntent.EXTRA_PROMPT,
+////                getString(R.string.speech_prompt));
+////        try {
+////            startActivityForResult(intent, REQ_CODE_SPEECH_INPUT);
+////        } catch (ActivityNotFoundException a) {
+////            Toast.makeText(getApplicationContext(),
+////                    getString(R.string.speech_not_supported),
+////                    Toast.LENGTH_SHORT).show();
+////        }
+//    }
 
     private void requestAudioPermissions() {
         if (ContextCompat.checkSelfPermission(this,
@@ -862,9 +827,10 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-
     public static void updateAlert(boolean clickHome){
         //your textview
         wait = clickHome;
     }
 }
+
+

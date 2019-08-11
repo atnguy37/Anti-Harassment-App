@@ -16,6 +16,12 @@
             android:title="@string/menu_my_contacts"
             android:visible="false"
             />
+        <item
+            android:id="@+id/feedback"
+            android:icon="@drawable/ic_account_box_black_24dp"
+            android:title="@string/menu_feedback"
+            android:visible="false"
+            />
     </group>
 
         <group android:checkableBehavior="single">
