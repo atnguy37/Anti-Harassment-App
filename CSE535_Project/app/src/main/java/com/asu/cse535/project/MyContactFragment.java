@@ -1,15 +1,21 @@
 package com.asu.cse535.project;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.telephony.SmsManager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -37,6 +43,8 @@ import java.util.Map;
  */
 public class MyContactFragment extends Fragment implements UserAdapter.OnUserListener {
 
+    public  static final int RequestPermissionCode  = 2 ;
+
     View view;
     FirebaseUser FireBaseSignInAccount;
     FirebaseFirestore firebasedb;
@@ -56,7 +64,10 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
     View overlayView;
     ArrayList<String> keys;
     ArrayList<Object> values;
-
+    ImageButton send_msg;
+    String LOG = "MainActivity";
+    SmsManager smgr;
+    TextView textView_send_message;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -69,6 +80,8 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
         firebasedb = ((MainActivity) getActivity()).initFirestore();
         UserID = FireBaseSignInAccount.getUid();
 
+        textView_send_message = view.findViewById(R.id.textView_send_message);
+        send_msg = view.findViewById(R.id.send_msg);
         overlayView = view.findViewById(R.id.overlayView);
         fab1_text = view.findViewById(R.id.fab1_text);
         fab2_text = view.findViewById(R.id.fab2_text);
@@ -86,6 +99,8 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
                 }
             }
         });
+
+        EnableRuntimePermission();
 
         addNewContact.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -105,12 +120,45 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
             }
         });
 
+        send_msg.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                sendMessage();
+
+            }
+        });
+
+
         contactRef = firebasedb.collection("users");
         test = firebasedb.collection("users").document(UserID);
         getReadData();
 
         return  view;
 
+    }
+
+
+    private void sendMessage(){
+        try{
+            smgr = SmsManager.getDefault();
+            keys = new ArrayList<>();
+
+            keys = new ArrayList<String>(user.getEmergencyContacts().keySet()); //phones
+
+            String textMessage = "help! my location is: xyz";
+
+            for (int i = 0; i < keys.size(); i++){
+                String phone_number = "+" + keys.get(i);
+                smgr.sendTextMessage(keys.get(i),null,textMessage,null,null);
+                Log.i(LOG, "message send to " + phone_number);
+            }
+
+            Toast.makeText(getActivity(), "SMS Sent Successfully - " + keys.size()  + " msg send", Toast.LENGTH_SHORT).show();
+        }
+        catch (Exception e){
+            Log.i(LOG, "Message failed:  " + e.toString());
+        }
     }
 
     private void showButtonMenu(){
@@ -121,6 +169,8 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
         fab2_text.setVisibility(View.VISIBLE);
         fab1_text.animate().translationY(-getResources().getDimension(R.dimen.standard_65));
         fab2_text.animate().translationY(-getResources().getDimension(R.dimen.standard_110));
+        send_msg.setVisibility(View.GONE);
+        textView_send_message.setVisibility(View.GONE);
 
         addNewContact.animate().translationY(-getResources().getDimension(R.dimen.standard_55));
         addExistingContact.animate().translationY(-getResources().getDimension(R.dimen.standard_100));
@@ -136,6 +186,8 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
 
         fab1_text.setVisibility(View.GONE);
         fab2_text.setVisibility(View.GONE);
+        send_msg.setVisibility(View.VISIBLE);
+        textView_send_message.setVisibility(View.VISIBLE);
 
     }
     public void onStart() {
@@ -191,6 +243,8 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
 
     @Override
     public void onUserClick(int position) {
+
+
         Toast.makeText(getActivity(),String.valueOf(position), Toast.LENGTH_SHORT).show();
 
     }
@@ -259,6 +313,32 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
     };
 
 
+    public void EnableRuntimePermission(){
+
+        if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
+                Manifest.permission.SEND_SMS)){
+            Toast.makeText(getActivity(),"CONTACTS permission allows us to Access CONTACTS app", Toast.LENGTH_LONG).show();
+
+        }
+        else {
+            ActivityCompat.requestPermissions(getActivity(),new String[]{
+                    Manifest.permission.SEND_SMS}, RequestPermissionCode);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int RequestCode, String per[], int[] PResult) {
+        switch (RequestCode) {
+            case RequestPermissionCode:
+                if (PResult.length > 0 && PResult[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(getActivity(),"Permission Granted.", Toast.LENGTH_LONG).show();
+
+                } else {
+                    Toast.makeText(getActivity(),"Permission Canceled.", Toast.LENGTH_LONG).show();
+                }
+                break;
+        }
+    }
 
     /*@Override
     public void onStart(){

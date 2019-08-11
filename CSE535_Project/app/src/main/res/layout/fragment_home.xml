@@ -70,13 +70,13 @@
             android:id="@+id/cancel_image"
             android:layout_width="150dp"
             android:layout_height="104dp"
-            android:src="@drawable/ic_cancel_black_24dp" />
+            android:src="@drawable/ico_mic" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="Cancel"
+            android:text="Voice"
             android:textSize="15dp"
             android:textStyle="bold" />
     </LinearLayout>

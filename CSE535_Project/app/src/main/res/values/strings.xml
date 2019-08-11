@@ -18,7 +18,9 @@
     <string name="menu_log_in">Log in</string>
     <string name="maps">Maps</string>
     <string name="collection_user_locations">User Locations</string>
+    <string name="voice_recognition">Voice Recognition</string>
 
     <string name="client_id">786077791064-r1eokqbg8kqb3p8no1nnmn4n144jaj3o.apps.googleusercontent.com</string>
+    <string name="tap_on_mic">Tap on mic to speak</string>
 
 </resources>

@@ -1,5 +1,7 @@
 package com.asu.cse535.project;
 
+import android.Manifest;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -13,10 +15,16 @@ import android.location.LocationManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -25,7 +33,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
@@ -59,12 +66,14 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+
 import static com.asu.cse535.project.Constant.ERROR_DIALOG_REQUEST;
 import static com.asu.cse535.project.Constant.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
 import static com.asu.cse535.project.Constant.PERMISSIONS_REQUEST_ENABLE_GPS;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author mariogp18, anh nguyen
@@ -86,6 +95,8 @@ public class MainActivity extends AppCompatActivity
 
     Button alert;
     DocumentReference userContactsDocRef;
+
+
     public boolean mLocationPermissionGranted = false;
 
     // Shaking Alarm
@@ -94,15 +105,23 @@ public class MainActivity extends AppCompatActivity
     private float acelLast; // last acceleration including gravity
     private float shake; // acceleration apart from gravity
     private boolean shaking = false;
-    private boolean wait = false;
+//    private boolean wait = false;
 
 
+    private SpeechRecognizer speechRecognizer;
+    private Intent speechRecognizerIntent;
+    private final int REQ_CODE_SPEECH_INPUT = 100;
+    private final int MY_PERMISSIONS_RECORD_AUDIO = 1;
+    private byte count;
+    private long startMillis=0;
+
+    private static boolean wait = true;
+    Bundle send;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        setContentView(R.layout.activity_main);
 
         //Shaking Alarm
         sm = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -110,6 +129,8 @@ public class MainActivity extends AppCompatActivity
         shake = 0.00f;
         acelVal = SensorManager.GRAVITY_EARTH;
         acelLast = SensorManager.GRAVITY_EARTH;
+
+
 
         //Setting the content view to activity_main.xml
         // comment
@@ -138,26 +159,120 @@ public class MainActivity extends AppCompatActivity
         FBDB = initFirestore();
 
         if (savedInstanceState == null) {
+            System.out.println("savedInstanceState");
             getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new HomeFragment()).commit();
             navigationView.setCheckedItem(R.id.nav_home);
 
         }
 
         addIDDocument();
+
+
+        requestAudioPermissions();
+
+        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(MainActivity.this);
+
+        promptSpeechInput();
+        speechRecognizer.setRecognitionListener(new RecognitionListener() {
+            @Override
+            public void onReadyForSpeech(Bundle bundle) {
+
+            }
+
+            @Override
+            public void onBeginningOfSpeech() {
+
+            }
+
+            @Override
+            public void onRmsChanged(float v) {
+
+            }
+
+            @Override
+            public void onBufferReceived(byte[] bytes) {
+
+            }
+
+            @Override
+            public void onEndOfSpeech() {
+
+            }
+
+            @Override
+            public void onError(int i) {
+
+            }
+
+            @Override
+            public void onResults(Bundle bundle) {
+                ArrayList<String> result = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                if(result != null) {
+                    Toast.makeText(getApplicationContext(),"Result: " + result.get(0), Toast.LENGTH_SHORT).show();
+                }
+
+            }
+
+            @Override
+            public void onPartialResults(Bundle bundle) {
+
+            }
+
+            @Override
+            public void onEvent(int i, Bundle bundle) {
+
+            }
+        });
+        drawer.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                switch (motionEvent.getAction())
+                {
+                    case MotionEvent.ACTION_UP:
+                        break;
+
+
+                    case MotionEvent.ACTION_DOWN:
+                        long time= System.currentTimeMillis();
+
+
+                        //if it is the first time, or if it has been more than 3 seconds since the first tap ( so it is like a new try), we reset everything
+                        if (startMillis==0 || (time-startMillis> 3000) ) {
+                            startMillis=time;
+                            count=1;
+                        }
+                        //it is not the first, and it has been  less than 3 seconds since the first
+                        else{ //  time-startMillis< 3000
+                            count++;
+                        }
+
+                        if (count==3) {
+                            //do whatever you need
+                            speechRecognizer.startListening(speechRecognizerIntent);
+                            count = 0;
+                        }
+
+                        break;
+                }
+                return false;
+            }
+        });
+//        lockScreenPermission();
+
     }
 
     public void addIDDocument(){
-
+        firebaseDB = initFirestore();
         AreYouSignInAccount = getAreYouSignInAccount();
 
-        if(AreYouSignInAccount != null) {
-            firebaseDB = initFirestore();
+        if (AreYouSignInAccount != null) {
             String UserID = AreYouSignInAccount.getUid();
 
             userContactsDocRef = firebaseDB.collection("users").document(UserID);
 
             Map<String, Object> id = new HashMap<>();
             id.put("id", UserID);
+
 
             userContactsDocRef
                     .set(id, SetOptions.merge())
@@ -182,9 +297,9 @@ public class MainActivity extends AppCompatActivity
             userContactsDocRef.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                 @Override
                 public void onSuccess(DocumentSnapshot documentSnapshot) {
-                    if(documentSnapshot.exists()) {
+                    if (documentSnapshot.exists()) {
                         user = documentSnapshot.toObject(User.class);
-                        if(user.getEmergencyContacts() == null){
+                        if (user.getEmergencyContacts() == null) {
                             Map<String, Object> contactsMap = new HashMap<>();
                             //contactsMap.put(name, phoneNumber);
 
@@ -209,6 +324,32 @@ public class MainActivity extends AppCompatActivity
                                     });
                         }
 
+                        if (user.getLocations() == null) {
+                            Map<String, Object> subLocations = new HashMap<>();
+
+                            UserLocation temp_UL = new UserLocation();
+                            Map<String, Object> Locations = new HashMap<>();
+                            Locations.put("Locations", temp_UL);
+
+                            userContactsDocRef
+                                    .set(Locations, SetOptions.merge())
+                                    .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                        @Override
+                                        public void onSuccess(Void aVoid) {
+                                            //  Toast.makeText(getApplicationContext(), "id added", Toast.LENGTH_SHORT).show();
+
+                                        }
+                                    })
+                                    .addOnFailureListener(new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception e) {
+                                            //Toast.makeText(getApplicationContext(), "failed id", Toast.LENGTH_SHORT).show();
+
+                                        }
+                                    });
+                        }
+
+
                     } else {
                         //User Exists
                         Toast.makeText(getApplicationContext(), "EC structure Exists", Toast.LENGTH_SHORT).show();
@@ -223,11 +364,7 @@ public class MainActivity extends AppCompatActivity
 
         }
 
-
-
-
     }
-
     public FirebaseFirestore initFirestore() {
         FirebaseFirestore firebaseDB = FirebaseFirestore.getInstance();
         return firebaseDB;
@@ -240,6 +377,100 @@ public class MainActivity extends AppCompatActivity
         return signInAccount;
     }
 
+   @Override
+    protected void onStart(){
+
+       mAuth = FirebaseAuth.getInstance();
+       //AreYouSignInAccount = GoogleSignIn.getLastSignedInAccount(this);
+       AreYouSignInAccount = mAuth.getCurrentUser();
+
+       if(AreYouSignInAccount != null) {
+           View headerView = navigationView.getHeaderView(0);
+           TextView nav_header_title = (TextView)headerView.findViewById(R.id.nav_header_titles);
+           TextView nav_header_subtitle = (TextView)headerView.findViewById(R.id.nav_header_subtitles);
+           ImageView nav_imageView = (ImageView)headerView.findViewById(R.id.nav_imageView);
+
+           String personName = AreYouSignInAccount.getDisplayName();
+           String personEmail = AreYouSignInAccount.getEmail();
+           Uri personImage = AreYouSignInAccount.getPhotoUrl();
+
+           nav_header_title.setText(personName);
+           if(personEmail != null){
+               nav_header_subtitle.setText(personEmail);
+           }
+           if(personImage != null){
+               Glide.with(this).load(personImage).fitCenter().apply(new RequestOptions().override(108, 108)).placeholder(R.drawable.ic_launcher_foreground).into(nav_imageView);
+           }
+
+
+           navigationView.getMenu().findItem(R.id.nav_log_out).setVisible(true);
+           navigationView.getMenu().findItem(R.id.nav_home).setVisible(true);
+           navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(false);
+           navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(true);
+           navigationView.getMenu().findItem(R.id.nav_map).setVisible(true);
+
+           navigationView.getMenu().findItem(R.id.nav_share).setVisible(true);
+
+       }
+       else{
+           navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(true);
+           navigationView.getMenu().findItem(R.id.nav_home).setVisible(true);
+           navigationView.getMenu().findItem(R.id.nav_log_out).setVisible(false);
+           navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(false);
+           navigationView.getMenu().findItem(R.id.nav_map).setVisible(false);
+           navigationView.getMenu().findItem(R.id.nav_share).setVisible(false);
+
+       }
+       super.onStart();
+   }
+
+
+
+    //Closes the left side navigation
+    @Override
+    public void onBackPressed() {
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
+        if (drawer.isDrawerOpen(GravityCompat.START)) {
+            drawer.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    //Creates the optional menu (three dots that contains settings)
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(checkMapServices()){
+            if(mLocationPermissionGranted){
+                //getChatrooms();
+                Log.d(TAG, "onActivityResult: get Location Permission.");
+            }
+            else{
+                getLocationPermission();
+            }
+        }
+        System.out.println("onResume Main called");
+
+    }
+
+    @Override
+    protected void onStop() {
+
+        super.onStop();
+        //Toast.makeText(getApplicationContext(), "onPause called", Toast.LENGTH_LONG).show();
+//        startActivity(new Intent(MainActivity.this,VoiceActivity.class));
+        System.out.println("onStop Main called");
+
+    }
+
     private boolean checkMapServices() {
         if (isServicesOK()) {
             if (isMapsEnabled()) {
@@ -249,7 +480,15 @@ public class MainActivity extends AppCompatActivity
         return false;
     }
 
+    public boolean isMapsEnabled(){
+        final LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
 
+        if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
+            buildAlertMessageNoGps();
+            return false;
+        }
+        return true;
+    }
 
     private void buildAlertMessageNoGps() {
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -263,16 +502,6 @@ public class MainActivity extends AppCompatActivity
                 });
         final AlertDialog alert = builder.create();
         alert.show();
-    }
-
-    public boolean isMapsEnabled(){
-        final LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
-
-        if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
-            buildAlertMessageNoGps();
-            return false;
-        }
-        return true;
     }
 
     private void getLocationPermission() {
@@ -315,104 +544,6 @@ public class MainActivity extends AppCompatActivity
         return false;
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String permissions[],
-                                           @NonNull int[] grantResults) {
-        mLocationPermissionGranted = false;
-        switch (requestCode) {
-            case PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    mLocationPermissionGranted = true;
-                    Log.d(TAG, "onRequestPermissionsResult: Everything is fine");
-                    System.out.println("onRequestPermissionsResult: Everything is fine");
-                }
-            }
-        }
-    }
-
-
-    @Override
-    protected void onStart(){
-
-        mAuth = FirebaseAuth.getInstance();
-        //AreYouSignInAccount = GoogleSignIn.getLastSignedInAccount(this);
-        AreYouSignInAccount = mAuth.getCurrentUser();
-
-        if(AreYouSignInAccount != null) {
-            View headerView = navigationView.getHeaderView(0);
-            TextView nav_header_title = (TextView)headerView.findViewById(R.id.nav_header_titles);
-            TextView nav_header_subtitle = (TextView)headerView.findViewById(R.id.nav_header_subtitles);
-            ImageView nav_imageView = (ImageView)headerView.findViewById(R.id.nav_imageView);
-
-            String personName = AreYouSignInAccount.getDisplayName();
-            String personEmail = AreYouSignInAccount.getEmail();
-            Uri personImage = AreYouSignInAccount.getPhotoUrl();
-
-            nav_header_title.setText(personName);
-            if(personEmail != null){
-                nav_header_subtitle.setText(personEmail);
-            }
-            if(personImage != null){
-                Glide.with(this).load(personImage).fitCenter().apply(new RequestOptions().override(108, 108)).placeholder(R.drawable.ic_launcher_foreground).into(nav_imageView);
-            }
-
-
-            navigationView.getMenu().findItem(R.id.nav_log_out).setVisible(true);
-            navigationView.getMenu().findItem(R.id.nav_home).setVisible(true);
-            navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(false);
-            navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(true);
-            navigationView.getMenu().findItem(R.id.nav_share).setVisible(true);
-            navigationView.getMenu().findItem(R.id.nav_map).setVisible(true);
-
-        }
-        else{
-            navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(true);
-            navigationView.getMenu().findItem(R.id.nav_home).setVisible(true);
-            navigationView.getMenu().findItem(R.id.nav_log_out).setVisible(false);
-            navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(false);
-            navigationView.getMenu().findItem(R.id.nav_share).setVisible(false);
-            navigationView.getMenu().findItem(R.id.nav_map).setVisible(false);
-
-        }
-        super.onStart();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if(checkMapServices()){
-            if(mLocationPermissionGranted){
-                //getChatrooms();
-                Log.d(TAG, "onActivityResult: get Location Permission.");
-            }
-            else{
-                getLocationPermission();
-            }
-        }
-    }
-
-
-    //Closes the left side navigation
-    @Override
-    public void onBackPressed() {
-        DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        if (drawer.isDrawerOpen(GravityCompat.START)) {
-            drawer.closeDrawer(GravityCompat.START);
-        } else {
-            super.onBackPressed();
-        }
-    }
-
-    //Creates the optional menu (three dots that contains settings)
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
-    }
 
     // This is for the optional menu and handles what happens when you click on the
     // options like settings.
@@ -443,6 +574,7 @@ public class MainActivity extends AppCompatActivity
 
         switch(id){
             case R.id.nav_home:
+                System.out.println("R.id.nav_home");
                 getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new HomeFragment()).commit();
                 break;
             case R.id.nav_my_contacts:
@@ -494,12 +626,6 @@ public class MainActivity extends AppCompatActivity
             case R.id.nav_share:
                 Toast.makeText(this, "Share", Toast.LENGTH_SHORT).show();
 
-                break;
-            case R.id.nav_map:
-                //Intent ContactsIntent = new Intent(this, SecondActivity.class);
-                //myIntent.putExtra("key", value); //Optional parameters
-                //this.startActivity(ContactsIntent);
-                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new MapFragment()).commit();
                 break;
         }
 
@@ -602,12 +728,12 @@ public class MainActivity extends AppCompatActivity
                 float delta = acelVal - acelLast;
                 shake = shake * 0.9f + delta; // perform low-cut filter
                 //System.out.println("Shake: " + shake);
-                if ((shake > 10 || shake < -10)) {
+                if ((shake > 1 || shake < -1)) {
 //                    Toast toast = Toast.makeText(getApplicationContext(), "DO NOT SHAKE ME", Toast.LENGTH_LONG);
 //                    toast.show();
 
-//                    System.out.println("Shake In: " + shaking);
-//                    System.out.println("Wait In: " + wait);
+                    System.out.println("Shake In: " + shaking);
+                    System.out.println("Wait In: " + wait);
                     shaking = true;
                     if (!wait) {
                         wait = true;
@@ -643,12 +769,44 @@ public class MainActivity extends AppCompatActivity
                         Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
                         Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
                         r.play();
-                        Thread.sleep(10000);
-                        wait = false;
-                        r.stop();
 
+                        send = new Bundle();
+                        send.putBoolean("Alert",true);
+                        HomeFragment fragInfo = new HomeFragment();
+                        fragInfo.setArguments(send);
+                        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragInfo).commit();
+
+
+
+                        for (int i = 50; i > 0; i--) {
+//                            receive = getIntent();
+//                            boolean click = receive.getBooleanExtra("Click",true);
+                            System.out.println("Click Main: " + wait);
+                            //System.out.println("Cancel Alert in: " +i + " seconds");
+                            Thread.sleep(200);
+                            if(!wait){
+                                r.stop();
+                                break;
+
+                            }
+                        }
+
+                        r.stop();
                     }
                     wait = false;
+
+                    send.putBoolean("Alert",false);
+                    HomeFragment fragInfo = new HomeFragment();
+                    fragInfo.setArguments(send);
+                    getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragInfo).commit();
+
+
+//                    send.putBoolean("Alert",wait);
+//                    HomeFragment fragInfo = new HomeFragment();
+//                    fragInfo.setArguments(send);
+
+//                    send.putExtra("alarm", wait);
+
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -656,4 +814,57 @@ public class MainActivity extends AppCompatActivity
         }).start();
     }
 
+    private void promptSpeechInput() {
+        speechRecognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+//        intent.putExtra(RecognizerIntent.EXTRA_PROMPT,
+//                getString(R.string.speech_prompt));
+//        try {
+//            startActivityForResult(intent, REQ_CODE_SPEECH_INPUT);
+//        } catch (ActivityNotFoundException a) {
+//            Toast.makeText(getApplicationContext(),
+//                    getString(R.string.speech_not_supported),
+//                    Toast.LENGTH_SHORT).show();
+//        }
+    }
+
+    private void requestAudioPermissions() {
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            //When permission is not granted by user, show them message why this permission is needed.
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.RECORD_AUDIO)) {
+                Toast.makeText(this, "Please grant permissions to record audio", Toast.LENGTH_LONG).show();
+
+                //Give user option to still opt-in the permissions
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.RECORD_AUDIO},
+                        MY_PERMISSIONS_RECORD_AUDIO);
+
+            } else {
+                // Show user dialog to grant permission to record audio
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.RECORD_AUDIO},
+                        MY_PERMISSIONS_RECORD_AUDIO);
+            }
+        }
+    }
+    private void lockScreenPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + getPackageName()));
+            startActivityForResult(intent, 1);
+        }
+    }
+
+
+    public static void updateAlert(boolean clickHome){
+        //your textview
+        wait = clickHome;
+    }
 }

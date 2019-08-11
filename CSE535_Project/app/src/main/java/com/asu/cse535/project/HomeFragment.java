@@ -1,23 +1,39 @@
 package com.asu.cse535.project;
 
+import android.Manifest;
+import android.app.KeyguardManager;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.asu.cse535.project.maps.MapFragment;
 import com.google.firebase.auth.FirebaseUser;
+
+import java.util.ArrayList;
+import java.util.Locale;
+
+import static android.app.Activity.RESULT_OK;
 
 /**
  * @author mario padilla, efren lopez
@@ -29,6 +45,19 @@ public class HomeFragment extends Fragment {
     LinearLayout layout2;
     LinearLayout layout3;
     LinearLayout layout4;
+
+
+    private SpeechRecognizer speechRecognizer;
+    private Intent speechRecognizerIntent;
+    private final int REQ_CODE_SPEECH_INPUT = 100;
+    private final int MY_PERMISSIONS_RECORD_AUDIO = 1;
+
+    private static final int REQUEST_CODE_CONFIRM_DEVICE_CREDENTIALS = 1;
+
+    private Intent receive,send;
+
+    private KeyguardManager mKeyguardManager;
+
 
     @Nullable
     @Override
@@ -45,16 +74,32 @@ public class HomeFragment extends Fragment {
         layout3 = (LinearLayout) view.findViewById(R.id.layout3);
         layout4 = (LinearLayout) view.findViewById(R.id.layout4);
 
+        mKeyguardManager = (KeyguardManager) getActivity().getSystemService(Context.KEYGUARD_SERVICE);
+
+        if (!mKeyguardManager.isKeyguardSecure()) {
+            // Show a message that the user hasn't set up a lock screen.
+            Toast.makeText(getContext(), "Secure lock screen hasn't set up.\n"
+                            + "Go to 'Settings -> Security -> Screenlock' to set up a lock screen",
+                    Toast.LENGTH_LONG).show();
+//            purchaseButton.setEnabled(false);
+            return null;
+        }
+
         alertButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 // Code here executes on main thread after user presses button
 
                 // Replace
-                click = !click;
-                if(click) {
+
+
+                if(!click) {
+                    click = !click;
                     alertButton.setText("Cancel");
                     Toast.makeText( getActivity(),"Alert!", Toast.LENGTH_SHORT).show();
                     makeSound ();
+                }
+                else {
+                    showAuthenticationScreen();
                 }
 
 
@@ -62,6 +107,8 @@ public class HomeFragment extends Fragment {
         });
 
 
+        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(getContext());
+        requestAudioPermissions();
 
         //Access mainActivity
         FirebaseUser AreYouSignInAccount = ((MainActivity) getActivity()).getAreYouSignInAccount();
@@ -95,7 +142,8 @@ public class HomeFragment extends Fragment {
                 // Code here executes on main thread after user presses button
 
                 // Replace
-                Toast.makeText( getActivity(),"Cancel", Toast.LENGTH_SHORT).show();
+                speechRecognizer.startListening(speechRecognizerIntent);
+                Toast.makeText( getActivity(),"Voice", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -117,6 +165,67 @@ public class HomeFragment extends Fragment {
                 Toast.makeText( getActivity(),"View Unsafe Zone", Toast.LENGTH_SHORT).show();
             }
         });
+
+
+        promptSpeechInput();
+        speechRecognizer.setRecognitionListener(new RecognitionListener() {
+            @Override
+            public void onReadyForSpeech(Bundle bundle) {
+
+            }
+
+            @Override
+            public void onBeginningOfSpeech() {
+
+            }
+
+            @Override
+            public void onRmsChanged(float v) {
+
+            }
+
+            @Override
+            public void onBufferReceived(byte[] bytes) {
+
+            }
+
+            @Override
+            public void onEndOfSpeech() {
+
+            }
+
+            @Override
+            public void onError(int i) {
+
+            }
+
+            @Override
+            public void onResults(Bundle bundle) {
+                ArrayList<String> result = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                if(result != null) {
+                    Toast.makeText(getContext(),"Result: " + result.get(0), Toast.LENGTH_SHORT).show();
+                    if(result.get(0).toLowerCase().indexOf("help") >= 0) {
+                        click = !click;
+                        if(click) {
+                            alertButton.setText("Cancel");
+                            Toast.makeText( getActivity(),"Alert!", Toast.LENGTH_SHORT).show();
+                            makeSound ();
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onPartialResults(Bundle bundle) {
+
+            }
+
+            @Override
+            public void onEvent(int i, Bundle bundle) {
+
+            }
+        });
+
         return view;
     }
 
@@ -160,5 +269,118 @@ public class HomeFragment extends Fragment {
         }).start();
     }
 
+    private void promptSpeechInput() {
+        speechRecognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+//        intent.putExtra(RecognizerIntent.EXTRA_PROMPT,
+//                getString(R.string.speech_prompt));
+//        try {
+//            startActivityForResult(intent, REQ_CODE_SPEECH_INPUT);
+//        } catch (ActivityNotFoundException a) {
+//            Toast.makeText(getApplicationContext(),
+//                    getString(R.string.speech_not_supported),
+//                    Toast.LENGTH_SHORT).show();
+//        }
+    }
 
+    private void requestAudioPermissions() {
+        if (ContextCompat.checkSelfPermission(getContext(),
+                Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            //When permission is not granted by user, show them message why this permission is needed.
+            if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),
+                    Manifest.permission.RECORD_AUDIO)) {
+                Toast.makeText(getContext(), "Please grant permissions to record audio", Toast.LENGTH_LONG).show();
+
+                //Give user option to still opt-in the permissions
+                ActivityCompat.requestPermissions(getActivity(),
+                        new String[]{Manifest.permission.RECORD_AUDIO},
+                        MY_PERMISSIONS_RECORD_AUDIO);
+
+            } else {
+                // Show user dialog to grant permission to record audio
+                ActivityCompat.requestPermissions(getActivity(),
+                        new String[]{Manifest.permission.RECORD_AUDIO},
+                        MY_PERMISSIONS_RECORD_AUDIO);
+            }
+        }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        System.out.println("onStart Home");
+
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        System.out.println("onResume Home");
+
+//        receive = getIntent();
+//        click = receive.getBooleanExtra("Click",false);
+        if(this.getArguments()!= null)
+            click = this.getArguments().getBoolean("Alert",false);
+        if(click)
+            alertButton.setText("Cancel");
+
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+
+        System.out.println("onPause Home");
+
+    }
+
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+        System.out.println("onStop Home");
+
+    }
+
+    private void showAuthenticationScreen() {
+        // Create the Confirm Credentials screen. You can customize the title and description. Or
+        // we will provide a generic one for you if you leave it null
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            mKeyguardManager = (KeyguardManager) getActivity().getSystemService(Context.KEYGUARD_SERVICE);
+
+            if (mKeyguardManager.isKeyguardSecure()) {
+                Intent authIntent = mKeyguardManager.createConfirmDeviceCredentialIntent(null, null);
+                startActivityForResult(authIntent, REQUEST_CODE_CONFIRM_DEVICE_CREDENTIALS);
+            }
+        }
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_CONFIRM_DEVICE_CREDENTIALS) {
+            // Challenge completed, proceed with using cipher
+            if (resultCode == RESULT_OK) {
+                {
+                    click = !click;
+                    alertButton.setText("Alert");
+//                    send = new Intent(getActivity(),MainActivity.class);
+//                    send.putExtra("Click",click);
+//                    System.out.println("Click Home: " + click);
+//                    startActivity(send);
+                    MainActivity.updateAlert(click);
+                }
+            } else {
+                // The user canceled or didn’t complete the lock screen
+                // operation. Go to error/cancellation flow.
+                Toast.makeText(getContext(), "Authentication failed.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
 }
