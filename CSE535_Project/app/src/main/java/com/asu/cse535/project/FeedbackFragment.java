@@ -6,6 +6,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -40,6 +42,7 @@ public class FeedbackFragment extends Fragment {
     Map<String, Object> FeedbackStructure;
     Map<String, Object> FeedbackMap;
     DocumentReference userContactsDocRef;
+    RadioGroup radioGroup;
 
 
     @Nullable
@@ -47,7 +50,7 @@ public class FeedbackFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
 
-        View view  = inflater.inflate(R.layout.fragment_feedback, container, false);
+        final View view  = inflater.inflate(R.layout.fragment_feedback, container, false);
 
         name_edittext = (TextView) view.findViewById(R.id.name_edittext);
         description_edittext = (TextView) view.findViewById(R.id.description_edittext);
@@ -62,6 +65,8 @@ public class FeedbackFragment extends Fragment {
 
         }
 
+        radioGroup = (RadioGroup) view.findViewById(R.id.radioButtongroup);
+
 
         submit_form.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -69,7 +74,13 @@ public class FeedbackFragment extends Fragment {
 
                 String name = name_edittext.getText().toString();
                 String text_comment = description_edittext.getText().toString();
-                String rating = "";
+
+                int selectedId = radioGroup.getCheckedRadioButtonId();
+                // find the radiobutton by returned id
+                RadioButton ratings =  view.findViewById(selectedId);
+                String rating = ratings.getText().toString();
+
+
                 FeedbackMap = new HashMap<>();
                 FeedbackStructure = new HashMap<>();
 
