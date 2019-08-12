@@ -29,7 +29,7 @@
         android:background="@drawable/big_red_cicle"
         android:text="ALERT!"
         android:textColor="#fff"
-        android:textSize="50dp"
+        android:textSize="40dp"
         android:visibility="gone" />
 
     <LinearLayout
@@ -70,7 +70,7 @@
         android:visibility="gone">
 
         <ImageView
-            android:id="@+id/cancel_image"
+            android:id="@+id/voice"
             android:layout_width="150dp"
             android:layout_height="104dp"
             android:src="@drawable/ico_mic" />

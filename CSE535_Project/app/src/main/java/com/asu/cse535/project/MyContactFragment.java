@@ -90,6 +90,7 @@ public class MyContactFragment extends Fragment implements UserAdapter.OnUserLis
         fab1_text = view.findViewById(R.id.fab1_text);
         fab2_text = view.findViewById(R.id.fab2_text);
         imageCall = view.findViewById(R.id.call);
+        textView_send_message = view.findViewById(R.id.textView);
 
         FloatingActionButton openMenuButton = (FloatingActionButton) view.findViewById(R.id.add_contacs);
         addNewContact = (FloatingActionButton) view.findViewById(R.id.fab1);

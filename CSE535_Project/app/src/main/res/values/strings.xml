@@ -18,10 +18,14 @@
     <string name="menu_log_out">Log out</string>
     <string name="menu_log_in">Log in</string>
     <string name="maps">Maps</string>
+    <string name="maps_safe">Safe Zone</string>
+    <string name="maps_unsafe">Unsafe Zone</string>
     <string name="collection_user_locations">User Locations</string>
     <string name="voice_recognition">Voice Recognition</string>
+    <string name="user_location_db_id">zwtsekOqIGwKEj17rWzA</string>
 
     <string name="client_id">786077791064-r1eokqbg8kqb3p8no1nnmn4n144jaj3o.apps.googleusercontent.com</string>
     <string name="tap_on_mic">Tap on mic to speak</string>
+    <string name="title_activity_maps">Map</string>
 
 </resources>

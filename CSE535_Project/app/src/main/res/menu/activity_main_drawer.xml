@@ -38,6 +38,12 @@
                 android:visible="false"
                 />
             <item
+                android:id="@+id/nav_unsafe"
+                android:icon="@drawable/ic_unsafe"
+                android:title="@string/maps_unsafe"
+                android:visible="false"
+                />
+            <item
                 android:id="@+id/nav_log_in"
                 android:icon="@drawable/ic_exit_to_app_black_24dp"
                 android:title="@string/menu_log_in"

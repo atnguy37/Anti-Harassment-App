@@ -29,6 +29,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.asu.cse535.project.maps.MapFragment;
+import com.asu.cse535.project.maps.MapsActivity;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -38,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 import static android.app.Activity.RESULT_OK;
+import static com.asu.cse535.project.Constant.REQUEST_CODE_CURRENT_LOCATION;
 
 /**
  * @author mario padilla, efren lopez
@@ -72,6 +74,7 @@ public class HomeFragment extends Fragment {
     private Intent receive,send;
 
     private KeyguardManager mKeyguardManager;
+    private String activity;
 
 
     @Nullable
@@ -108,8 +111,10 @@ public class HomeFragment extends Fragment {
                 System.out.println("Click on Listener: " + click);
                 if(!click) {
                     click = !click;
+                    MainActivity.updateAlert(click);
                     alertButton.setText("Cancel");
                     Toast.makeText( getActivity(),"Alert!", Toast.LENGTH_SHORT).show();
+                    activity = "Button";
                     makeSound ();
                     SendTextMessage stm = new SendTextMessage();
                     stm.sendMessage(getActivity(), false);
@@ -182,7 +187,7 @@ public class HomeFragment extends Fragment {
                 // Code here executes on main thread after user presses button
 
                 // Replace
-                Toast.makeText( getActivity(),"View Unsafe Zone", Toast.LENGTH_SHORT).show();
+                Toast.makeText( getActivity(),"Voice Recognition", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -229,6 +234,7 @@ public class HomeFragment extends Fragment {
                         if(click) {
                             alertButton.setText("Cancel");
                             Toast.makeText( getActivity(),"Alert!", Toast.LENGTH_SHORT).show();
+                            activity = "Voice";
                             makeSound ();
                         }
                     }
@@ -338,6 +344,14 @@ public class HomeFragment extends Fragment {
                     if(click) {
                         r.stop();
                         click = false;
+                        System.out.println("HomeFragment Click");
+                        //get user location
+                        Intent intent = new Intent(getContext(), MapsActivity.class);
+                        intent.putExtra("Activity",  activity);
+                        intent.putExtra("UserID",UserID);
+                        //intent.putExtra("y",  etY.getText().toString());
+                        startActivityForResult(intent,REQUEST_CODE_CURRENT_LOCATION);
+
                     }
                     getActivity().runOnUiThread(new Runnable() {
                         public void run() {
@@ -453,10 +467,12 @@ public class HomeFragment extends Fragment {
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        System.out.println("resultCode: " + resultCode);
         if (requestCode == REQUEST_CODE_CONFIRM_DEVICE_CREDENTIALS) {
             // Challenge completed, proceed with using cipher
+            System.out.println("resultCode: " + requestCode);
             if (resultCode == RESULT_OK) {
-                {   System.out.println("Click on authen: " + click);
+                {   System.out.println("Click on authen in result: " + click);
                     if(click) {
                         click = !click;
                         alertButton.setText("Alert");
@@ -473,5 +489,17 @@ public class HomeFragment extends Fragment {
                 Toast.makeText(getContext(), "Authentication failed.", Toast.LENGTH_SHORT).show();
             }
         }
+        else if(requestCode == REQUEST_CODE_CURRENT_LOCATION){
+            if (resultCode == RESULT_OK) {
+                System.out.println("HomeFragment");
+                //Log.d(TAG, "getLastKnownLocation: called");
+                double latitude = data.getDoubleExtra("latitude", 0.0);
+                double longitude = data.getDoubleExtra("longitude", 0.0);
+                System.out.println("Location HomeFragment: " + latitude + " " + longitude);
+            }
+        }
+
+
+
     }
 }

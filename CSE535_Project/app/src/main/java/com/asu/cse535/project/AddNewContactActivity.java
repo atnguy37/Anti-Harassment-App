@@ -99,14 +99,14 @@ public class AddNewContactActivity extends AppCompatActivity {
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
-                        Toast.makeText(getApplicationContext(), "New contanct added", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), "New contact added", Toast.LENGTH_SHORT).show();
 
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-                        Toast.makeText(getApplicationContext(), "contact initally failed", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), "contact initially failed", Toast.LENGTH_SHORT).show();
 
                     }
                 });

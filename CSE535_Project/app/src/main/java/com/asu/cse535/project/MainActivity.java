@@ -18,13 +18,10 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.speech.RecognitionListener;
-import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -41,9 +38,9 @@ import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
 
 import com.asu.cse535.project.maps.MapFragment;
+import com.asu.cse535.project.maps.MapsActivity;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -67,16 +64,17 @@ import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.SetOptions;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 import static com.asu.cse535.project.Constant.ERROR_DIALOG_REQUEST;
 import static com.asu.cse535.project.Constant.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
 import static com.asu.cse535.project.Constant.PERMISSIONS_REQUEST_ENABLE_GPS;
+import static com.asu.cse535.project.Constant.REQUEST_CODE_CURRENT_LOCATION;
 
 /**
  * @author mariogp18, anh nguyen
@@ -92,7 +90,7 @@ public class MainActivity extends AppCompatActivity
     //private static final String TAG = "";
     private User user;
     private static final String TAG = MainActivity.class.getSimpleName();
-    int RC_SIGN_IN = 0;
+    private static final int RC_SIGN_IN = 0;
     private SignInButton signInButton;
     private GoogleSignInClient GoogleSignInClient;
     private NavigationView navigationView;
@@ -105,6 +103,7 @@ public class MainActivity extends AppCompatActivity
 
     Button alert;
     DocumentReference userContactsDocRef;
+    DocumentReference userLocations;
     ArrayList<String> phone_keys;
 
     private HomeFragment fragInfo;
@@ -126,6 +125,8 @@ public class MainActivity extends AppCompatActivity
     private final int MY_PERMISSIONS_RECORD_AUDIO = 1;
     private byte count;
     private long startMillis=0;
+
+    private double latitude, longitude;
 
     //private static boolean wait = true;
     Bundle send;
@@ -172,6 +173,10 @@ public class MainActivity extends AppCompatActivity
         FBDB = initFirestore();
 
         if(savedInstanceState == null){
+//            send = new Bundle();
+//            send.putBoolean("Alert",wait);
+//            fragInfo = new HomeFragment();
+//            fragInfo.setArguments(send);
             getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new HomeFragment(),"HomeFragment").commit();
             navigationView.setCheckedItem(R.id.nav_home);
 
@@ -181,7 +186,6 @@ public class MainActivity extends AppCompatActivity
 
         requestAudioPermissions();
 
-
     }
 
     public void addIDDocument(){
@@ -190,6 +194,8 @@ public class MainActivity extends AppCompatActivity
 
         if (AreYouSignInAccount != null){
             String UserID = AreYouSignInAccount.getUid();
+
+            userLocations = firebaseDB.collection(getString(R.string.collection_user_locations)).document(getString(R.string.user_location_db_id));
 
             userContactsDocRef = firebaseDB.collection("users").document(UserID);
 
@@ -346,7 +352,7 @@ public class MainActivity extends AppCompatActivity
                nav_header_subtitle.setText(personEmail);
            }
            if(personImage != null){
-               Glide.with(this).load(personImage).fitCenter().apply(new RequestOptions().override(108, 108)).placeholder(R.drawable.ic_launcher_foreground).into(nav_imageView);
+               Glide.with(this).load(personImage).fitCenter().apply(new RequestOptions().override(108, 108)).placeholder(R.drawable.ic_unsafe).into(nav_imageView);
            }
 
 
@@ -355,6 +361,7 @@ public class MainActivity extends AppCompatActivity
            navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(false);
            navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_map).setVisible(true);
+           navigationView.getMenu().findItem(R.id.nav_unsafe).setVisible(true);
            navigationView.getMenu().findItem(R.id.feedback).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_share).setVisible(true);
 
@@ -400,6 +407,8 @@ public class MainActivity extends AppCompatActivity
             if(mLocationPermissionGranted){
                 //getChatrooms();
                 Log.d(TAG, "onActivityResult: get Location Permission.");
+
+                //get user location
             }
             else{
                 getLocationPermission();
@@ -562,7 +571,17 @@ public class MainActivity extends AppCompatActivity
                 break;
 
             case R.id.nav_map:
+                Toast.makeText( getApplicationContext(),"View Safe Zone", Toast.LENGTH_SHORT).show();
                 getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new MapFragment()).commit();
+                break;
+
+            case R.id.nav_unsafe:
+                send = new Bundle();
+                send.putBoolean("Unsafe",true);
+                MapFragment fragUnsafe = new MapFragment();
+                fragUnsafe.setArguments(send);
+                Toast.makeText( getApplicationContext(),"View Unsafe Zone", Toast.LENGTH_SHORT).show();
+                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragUnsafe).commit();
                 break;
 
             case R.id.nav_share:
@@ -633,6 +652,14 @@ public class MainActivity extends AppCompatActivity
                 getLocationPermission();
             }
         }
+        else if(requestCode == REQUEST_CODE_CURRENT_LOCATION) {
+            if(resultCode == RESULT_OK){
+                Log.d(TAG, "getLastKnownLocation: called");
+                latitude = data.getDoubleExtra("latitude",0.0);
+                longitude = data.getDoubleExtra("longitude",0.0);
+                Log.d(TAG, "Location: " + latitude + " " + longitude);
+            }
+        }
     }
 
     //Refresh the main activity (calls the OnStart())
@@ -691,8 +718,6 @@ public class MainActivity extends AppCompatActivity
                     if (!wait) {
                         wait = true;
                         makeSound();
-                        SendTextMessage stm = new SendTextMessage();
-                        stm.sendMessage(MainActivity.this, false);
 
 //                        HomeFragment fragment = (HomeFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_container);
 //                        FragmentManager fm = getSupportFragmentManager();
@@ -728,9 +753,13 @@ public class MainActivity extends AppCompatActivity
 //                    System.out.println("Wait: " + wait);
                     // we add 100 new entries
                     if (wait && shaking) {
+//                        SendTextMessage stm = new SendTextMessage();
+//                        stm.sendMessage(MainActivity.this, false);
                         Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
                         Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
                         r.play();
+
+                        checkHomeFragment();
 
                         for (int i = 50; i > 0; i--) {
 //                            receive = getIntent();
@@ -746,23 +775,13 @@ public class MainActivity extends AppCompatActivity
                         }
 
                         r.stop();
-
-                        Fragment fragment = getSupportFragmentManager().findFragmentByTag("HomeFragment");
-                        if(fragment!=null && fragment.isVisible())
-                        {   wait = false;
-                            System.out.println("HomeFragment is running");
-                            System.out.println("Wait Before Send: " + wait);
-                            send = new Bundle();
-                            send.putBoolean("Alert",wait);
-                            fragInfo = new HomeFragment();
-                            fragInfo.setArguments(send);
-                            getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragInfo, "HomeFragment").commit();
-                        }
-                        else
-                        {
-                            System.out.println("OtherFragment is running");
-                            //do your code here
-                        }
+                        String UserID = AreYouSignInAccount.getUid();
+                        Intent mapLocation = new Intent(getApplicationContext(), MapsActivity.class);
+                        mapLocation.putExtra("Activity",  "MainActivity");
+                        mapLocation.putExtra("UserID",UserID);
+                        startActivityForResult(mapLocation, REQUEST_CODE_CURRENT_LOCATION);
+                        wait = false;
+                        checkHomeFragment();
                     }
                     wait = false;
 
@@ -831,6 +850,49 @@ public class MainActivity extends AppCompatActivity
         //your textview
         wait = clickHome;
     }
+
+    private void saveUserLocation() {
+//        DocumentReference locationRef = firebaseDB
+//                .collection(getString(R.string.collection_user_locations))
+//                .document(FirebaseAuth.getInstance().getUid());
+        GeoPoint geoPoint = new GeoPoint(latitude,longitude);
+        userLocations.set(geoPoint, SetOptions.merge())
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+
+
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+
+
+                    }
+                });
+    }
+
+    private void checkHomeFragment() {
+        System.out.println("checkHomeFragment");
+        Fragment fragment = getSupportFragmentManager().findFragmentByTag("HomeFragment");
+        if(fragment!=null && fragment.isVisible())
+        {
+                            System.out.println("HomeFragment is running");
+                            System.out.println("Wait Before Send: " + wait);
+            send = new Bundle();
+            send.putBoolean("Alert",wait);
+            fragInfo = new HomeFragment();
+            fragInfo.setArguments(send);
+            getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragInfo, "HomeFragment").commit();
+        }
+        else
+        {
+            System.out.println("OtherFragment is running");
+            //do your code here
+        }
+    }
+
 }
 
 

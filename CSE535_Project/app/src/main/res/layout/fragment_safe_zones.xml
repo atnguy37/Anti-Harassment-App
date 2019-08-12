@@ -10,11 +10,12 @@
         android:weightSum="100"
         android:background="@color/White">
     <TextView
+        android:id="@+id/maps_text"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="10"
         android:layout_alignParentTop="true"
-        android:text = "Safe Zones Page"
+        android:text = "@string/maps_safe"
         android:textSize="30sp"
         android:gravity ="center"
         />

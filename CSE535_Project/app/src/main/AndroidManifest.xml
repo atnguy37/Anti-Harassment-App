@@ -30,6 +30,8 @@
             android:label="@string/title_activity_existing_contact"
             android:theme="@style/AppTheme.NoActionBar"></activity>
         <activity
+            android:name=".maps.MapsActivity"></activity>
+        <activity
             android:name=".VoiceActivity"
             android:label="@string/voice_recognition"></activity>
         <activity
