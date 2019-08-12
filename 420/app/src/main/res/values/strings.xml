@@ -16,7 +16,7 @@
     <string name="nav_header_title">Placeholder Name</string>
     <string name="nav_header_subtitle">placeholder@asu.edu</string>
     <string name="nav_header_desc">Navigation header</string>
-
+    <string name="title_activity_collect_data">CollectDataActivity</string>
 
 
 </resources>

@@ -7,6 +7,7 @@
     tools:context=".MainActivity">
 
 
+
     <RelativeLayout
         android:id="@+id/linearLayout1"
         android:layout_width="match_parent"
@@ -127,8 +128,9 @@
 
     </RelativeLayout>
 
+    <include layout="@layout/graphview_layout"/>
 
-
+    <include layout="@layout/predict_gesture_layout"/>
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

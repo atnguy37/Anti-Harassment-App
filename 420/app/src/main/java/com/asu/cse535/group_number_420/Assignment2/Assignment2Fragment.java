@@ -89,6 +89,7 @@ public class Assignment2Fragment extends Fragment {
         getActivity().setTitle("CSE535 Assignment 2");
 
 
+
         sensorManager = (SensorManager) getActivity().getSystemService(getContext().SENSOR_SERVICE);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         sensorManager.registerListener(sensorListener, accelerometer , sensorManager.SENSOR_DELAY_NORMAL);

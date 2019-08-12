@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#EDFFFFFF"
+    android:id="@+id/predictGestureLayout"
+    android:visibility="gone"
+    >
+
+    <TextView
+        android:textColor="@android:color/black"
+        android:id="@+id/title_gv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="90dp"
+        android:layout_marginTop="60dp"
+        android:gravity="center"
+        android:text="Predict Gesture"
+        android:textSize="25dp" />
+
+
+    <TextView
+        android:id="@+id/tp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/title_gv"
+        android:layout_marginLeft="30dp"
+        android:layout_marginTop="146dp"
+        android:text="True positive: "
+        android:textColor="@android:color/black"
+        android:textSize="25dp" />
+
+    <TextView
+        android:id="@+id/true_positive"
+        android:layout_width="138dp"
+        android:layout_height="40dp"
+        android:layout_alignEnd="@+id/tp"
+        android:layout_alignRight="@+id/tp"
+        android:layout_alignBottom="@+id/tp"
+        android:layout_marginEnd="-148dp"
+        android:layout_marginRight="-148dp"
+        android:layout_marginBottom="-6dp"
+        android:layout_toLeftOf="@id/tp"
+        android:textColor="@android:color/black"
+        android:textSize="25dp" />
+
+    <TextView
+        android:textColor="@android:color/black"
+        android:id="@+id/fp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/title_gv"
+        android:layout_marginLeft="30dp"
+        android:layout_marginTop="268dp"
+        android:gravity="center"
+        android:text="False positive: "
+        android:textSize="25dp" />
+
+    <TextView
+        android:id="@+id/false_positive"
+        android:layout_width="138dp"
+        android:layout_height="40dp"
+        android:layout_alignEnd="@+id/tp"
+        android:layout_alignRight="@+id/tp"
+        android:layout_alignBottom="@+id/tp"
+        android:layout_marginEnd="-151dp"
+        android:layout_marginRight="-151dp"
+        android:layout_marginBottom="-129dp"
+        android:layout_toLeftOf="@id/fp"
+        android:textColor="@android:color/black"
+        android:textSize="25dp" />
+
+</RelativeLayout>
