@@ -22,7 +22,7 @@ public class PredictGesture {
     }
 
 
-    public int[] PredictCutGesture(ArrayList<ArrayList<ArrayList<Float>>> collectedCopGestures){
+    public int[] PredictCopGesture(ArrayList<ArrayList<ArrayList<Float>>> collectedGestures){
         int [] result = {1,2};
 
         return result;

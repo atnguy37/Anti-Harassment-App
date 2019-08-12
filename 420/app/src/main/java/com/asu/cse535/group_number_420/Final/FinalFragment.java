@@ -97,9 +97,9 @@ public class FinalFragment extends Fragment {
                 gestures = new PredictGesture(getContext(), view);
                 setButtons(false);
                 predictGestureLayout.setVisibility(View.VISIBLE);
-                int[] results = gestures.PredictCutGesture(collectGestures);
+                int[] results = gestures.PredictCopGesture(collectGestures);
                 truePositive.setText(String.valueOf(results[0]) + "/" + "4");
-                falsePositive.setText(String.valueOf(results[1])+ "/" + String.valueOf(collectGestures.size()));
+                falsePositive.setText(String.valueOf(results[1])+ "/" + "12");
 
             }
         });
@@ -174,8 +174,8 @@ public class FinalFragment extends Fragment {
                 setButtons(false);
                 predictGestureLayout.setVisibility(View.VISIBLE);
                 int[] results = gestures.PredictHungryGesture(collectGestures);
-                truePositive.setText(String.valueOf(results[0]));
-                falsePositive.setText(String.valueOf(results[1]));
+                truePositive.setText(String.valueOf(results[0]) + "/" + "4");
+                falsePositive.setText(String.valueOf(results[1])+ "/" + "12");
 
 
             }
@@ -189,8 +189,8 @@ public class FinalFragment extends Fragment {
                 setButtons(false);
                 predictGestureLayout.setVisibility(View.VISIBLE);
                 int[] results = gestures.PredictHeadacheGesture(collectGestures);
-                truePositive.setText(String.valueOf(results[0]));
-                falsePositive.setText(String.valueOf(results[1]));
+                truePositive.setText(String.valueOf(results[0]) + "/" + "4");
+                falsePositive.setText(String.valueOf(results[1])+ "/" + "12");
 
             }
         });
@@ -204,8 +204,8 @@ public class FinalFragment extends Fragment {
                 setButtons(false);
                 predictGestureLayout.setVisibility(View.VISIBLE);
                 int[] results = gestures.PredictAboutGesture(collectGestures);
-                truePositive.setText(String.valueOf(results[0]));
-                falsePositive.setText(String.valueOf(results[1]));
+                truePositive.setText(String.valueOf(results[0]) + "/" + "4");
+                falsePositive.setText(String.valueOf(results[1])+ "/" + "12");
 
             }
         });
