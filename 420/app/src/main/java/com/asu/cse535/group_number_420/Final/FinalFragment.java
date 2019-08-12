@@ -98,8 +98,8 @@ public class FinalFragment extends Fragment {
                 setButtons(false);
                 predictGestureLayout.setVisibility(View.VISIBLE);
                 int[] results = gestures.PredictCutGesture(collectGestures);
-                truePositive.setText(String.valueOf(results[0]));
-                falsePositive.setText(String.valueOf(results[1]));
+                truePositive.setText(String.valueOf(results[0]) + "/" + "4");
+                falsePositive.setText(String.valueOf(results[1])+ "/" + String.valueOf(collectGestures.size()));
 
             }
         });
