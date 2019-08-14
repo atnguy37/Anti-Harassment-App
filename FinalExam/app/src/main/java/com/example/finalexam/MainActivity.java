@@ -47,14 +47,14 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<ArrayList<Float[]>> collectGestures_gyroscope;
     private GraphView graph;
 
-//    ArrayList<ArrayList<Float>> series_accelero;
+    //    ArrayList<ArrayList<Float>> series_accelero;
 //    ArrayList<ArrayList<Float>> series_gyroscope;
     ArrayList<Float[]> series_accelero;
     ArrayList<Float[]> series_gyroscope;
     Float[] sensor = new Float[3];
 
-    private final static long ACC_CHECK_INTERVAL_BEGIN = 1500; // 1000ms
-    private final static long DURATION_DATA = 3500;
+    private final static long ACC_CHECK_INTERVAL_BEGIN = 500; // 1000ms
+    private final static long DURATION_DATA = 2000;
     private long begin = System.currentTimeMillis();
 
     //    GraphFunctions gf;
@@ -411,26 +411,28 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 // we add 100 new entries
 
-                for (check_result = 1; check_result < collectGestures_accelero.get(0).size(); check_result++)  {
+                for (check_result = 0; check_result < collectGestures_accelero.size(); check_result++)  {
                     runOnUiThread(new Runnable() {
 
                         @Override
                         public void run() {
-                            diff_x = collectGestures_accelero.get(0).get(check_result)[0] - collectGestures_accelero.get(0).get(check_result - 1)[0];
-
-                            diff_z = collectGestures_accelero.get(0).get(check_result)[2] - collectGestures_accelero.get(0).get(check_result-1)[2];
-//                            diff_gyro_y = collectGestures_gyroscope.get(0).get(check_result)[1] - collectGestures_gyroscope.get(0).get(check_result-1)[1];
-                            diff_y = collectGestures_accelero.get(0).get(check_result)[1] - collectGestures_accelero.get(0).get(check_result-1)[1];
+//                            diff_x = collectGestures_accelero.get(0).get(check_result)[0] - collectGestures_accelero.get(0).get(check_result - 1)[0];
+//
+//                            diff_z = collectGestures_accelero.get(0).get(check_result)[2] - collectGestures_accelero.get(0).get(check_result-1)[2];
+////                            diff_gyro_y = collectGestures_gyroscope.get(0).get(check_result)[1] - collectGestures_gyroscope.get(0).get(check_result-1)[1];
+//                            diff_y = collectGestures_accelero.get(0).get(check_result)[1] - collectGestures_accelero.get(0).get(check_result-1)[1];
 //                            Toast.makeText(getApplicationContext(),"X1: " + total.get(0).get(check_result)[0] + " and X2: " +  total.get(0).get(check_result - 1)[0],Toast.LENGTH_SHORT).show();
-                            Toast.makeText(getApplicationContext(),"Sample: " + check_result +" and X: " + Math.abs(diff_x) +  " and Z: " + Math.abs(diff_z) +
-                                    " and Y: " + Math.abs(diff_y), Toast.LENGTH_SHORT).show();
+                            Float[] count = new Float[3];
+                            count = check(collectGestures_accelero.get(check_result));
+                            Toast.makeText(getApplicationContext(),"Sample: " + check_result +" and X: " + count[0] +  " and Z: " + count[2] +
+                                    " and Y: " + count[1], Toast.LENGTH_SHORT).show();
 
                         }
                     });
 
                     // sleep to slow down the add of entries
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(2000);
                     } catch (InterruptedException e) {
                         // manage error ...
                     }
@@ -441,4 +443,22 @@ public class MainActivity extends AppCompatActivity {
 //        buttonStartStop = false;
 //        mButtonReset.setVisibility(View.VISIBLE);
     }
+
+    private Float[] check (ArrayList<Float[]> data) {
+        Float[] count = new Float[3];
+        short countX = 0,countY = 0,countZ = 0;
+        for (short i = 1; i < data.size(); i++) {
+            if(Math.abs(data.get(i)[0] - data.get(i-1)[0] ) > 1)
+                countX++;
+            if(Math.abs(data.get(i)[1] - data.get(i-1)[1])  > 1)
+                countY++;
+            if(Math.abs(data.get(i)[2] - data.get(i-1)[2])  > 1)
+                countZ++;
+        }
+        count[0] = (float)countX/(float)(data.size()-1);
+        count[1] = (float)countY/(float)(data.size()-1);
+        count[2] = (float)countZ/(float)(data.size()-1);
+        return count;
+    }
 }
+

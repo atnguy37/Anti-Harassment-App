@@ -154,13 +154,13 @@ public class PredictGesture {
 
             if(i > 3 && i < 8){
 
-                if (x_zero_crossing > 0 && y_zero_crossing < 2 && z_zero_crossing > 0)
+                if (x_zero_crossing < 2 && y_zero_crossing > 0 && z_zero_crossing > 0)
                     result[0] += 1;
 
             }
             else{
 
-                if (x_zero_crossing > 0 && y_zero_crossing < 2 && z_zero_crossing > 0)
+                if (x_zero_crossing < 2 && y_zero_crossing > 0 && z_zero_crossing > 0)
                     result[1] += 1;
 
             }
@@ -175,11 +175,12 @@ public class PredictGesture {
                                      ArrayList<ArrayList<Float[]>> collectGestures_gyroscope,
                                      short[] label){
         int [] result = {0,0};
-        short count;
+        short countGyro = 0;
         float diff_x,diff_y, diff_z;
         float diff_gyro_y;
+        short countX = 0,countY = 0,countZ = 0;
 
-        float aboutAccle;
+        float xPoss,yPoss,zPoss;
         float aboutGyro;
 //        System.out.println(collectGestures_accelero.size());
 //        System.out.println(collectGestures_gyroscope.size());
@@ -187,27 +188,33 @@ public class PredictGesture {
 //        System.out.println(collectGestures_accelero.get(0).size());
         short[] predict = new short[16];
         for (short i = 0; i < collectGestures_accelero.size(); i++) {
-            count = 0;
 //            Toast.makeText(getApplicationContext(),"Sampe Size " + i + " : " + total.get(i).size(), Toast.LENGTH_SHORT).show();
             for (short j = 1; j < collectGestures_accelero.get(i).size(); j++) {
                 diff_x = collectGestures_accelero.get(i).get(j)[0] - collectGestures_accelero.get(i).get(j-1)[0];
                 diff_z = collectGestures_accelero.get(i).get(j)[2] - collectGestures_accelero.get(i).get(j-1)[2];
                 diff_y = collectGestures_accelero.get(i).get(j)[1] - collectGestures_accelero.get(i).get(j-1)[1];
 
-                if(Math.abs(diff_x) > 0.5 && Math.abs(diff_z) > 0.5)
-                    count++;
+                if(Math.abs(diff_x) > 1)
+                    countX++;
+                if(Math.abs(diff_y) > 1)
+                    countY++;
+                if(Math.abs(diff_z) > 1)
+                    countZ++;
             }
-            aboutAccle = (float)count/(float)(collectGestures_accelero.get(i).size()-1);
-            count = 0;
+            xPoss = (float)countX/(float)(collectGestures_accelero.get(i).size()-1);
+            yPoss = (float)countY/(float)(collectGestures_accelero.get(i).size()-1);
+            zPoss = (float)countZ/(float)(collectGestures_accelero.get(i).size()-1);
+
+            countGyro = 0;
             for (short j = 1; j < collectGestures_gyroscope.get(i).size(); j++) {
                 diff_gyro_y = collectGestures_gyroscope.get(i).get(j)[1] - collectGestures_gyroscope.get(i).get(j-1)[1];
 //                diff_z = collectGestures_accelero.get(i).get(2).get(j) - collectGestures_accelero.get(i).get(2).get(j - 1);
 
                 if(Math.abs(diff_gyro_y) > 5)
-                    count++;
+                    countGyro++;
             }
-            aboutGyro = (float)count/(float)(collectGestures_gyroscope.get(i).size()-1);
-            if(aboutAccle > 0.4 && aboutGyro < 0.2)
+            aboutGyro = (float)countGyro/(float)(collectGestures_gyroscope.get(i).size()-1);
+            if(xPoss >= 0.5 && zPoss >= 0.5  && yPoss < 0.3 && aboutGyro < 0.2)
                 predict[i] = 3;
             else
                 predict[i] = 0;
@@ -278,7 +285,7 @@ public class PredictGesture {
                 diff_gyro_y = collectGestures_gyroscope.get(i).get(j)[1] - collectGestures_gyroscope.get(i).get(j-1)[1];
 //                diff_z = collectGestures_accelero.get(i).get(2).get(j) - collectGestures_accelero.get(i).get(2).get(j - 1);
 
-                if(Math.abs(diff_gyro_y) > 8)
+                if(Math.abs(diff_gyro_y) > 7)
                     count++;
             }
             aboutGyro = (float)count/(float)(collectGestures_gyroscope.get(i).size()-1);
@@ -356,9 +363,6 @@ public class PredictGesture {
                     }
 
                 }
-                else{
-                    break;
-                }
 
             }
 
@@ -369,3 +373,4 @@ public class PredictGesture {
 
     }
 }
+
