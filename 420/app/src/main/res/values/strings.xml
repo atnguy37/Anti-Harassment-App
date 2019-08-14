@@ -9,7 +9,13 @@
     <string name="patient_sex">Sex</string>
     <string name="upload_database">Upload Database</string>
     <string name="download_database">Download Database</string>
-
+    <string name="assignment_2">Assignment 2</string>
+    <string name="final_assignment">Final</string>
+    <string name="navigation_open_drawer">Open navigation drawer</string>
+    <string name="navigation_close_drawer">Close navigation drawer</string>
+    <string name="nav_header_title">Placeholder Name</string>
+    <string name="nav_header_subtitle">placeholder@asu.edu</string>
+    <string name="nav_header_desc">Navigation header</string>
 
 
 
