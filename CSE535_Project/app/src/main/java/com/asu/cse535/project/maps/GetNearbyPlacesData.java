@@ -66,7 +66,7 @@ public class GetNearbyPlacesData extends AsyncTask<Object, String, String> {
             markerOptions.position(latLng);
             markerOptions.title(placeName + " : "+ vicinity);
 
-            Log.d("Fragment",icon);
+            //Log.d("Fragment",icon);
 
 //            if (icon == null || icon.isEmpty())
             markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));

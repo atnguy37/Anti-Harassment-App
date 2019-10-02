@@ -21,7 +21,7 @@ public class DataParser {
         String reference="";
         String icon = "";
 
-        Log.d("DataParser","jsonobject ="+googlePlaceJson.toString());
+        //Log.d("DataParser","jsonobject ="+googlePlaceJson.toString());
 
 
         try {
@@ -75,7 +75,7 @@ public class DataParser {
         JSONArray jsonArray = null;
         JSONObject jsonObject;
 
-        Log.d("json data", jsonData);
+        //Log.d("json data", jsonData);
 
         try {
             jsonObject = new JSONObject(jsonData);

@@ -1,5 +1,6 @@
 package com.asu.cse535.project;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
@@ -14,7 +15,10 @@ import android.location.LocationManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
+import android.speech.SpeechRecognizer;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -33,9 +37,10 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.Fragment;
 
 import com.asu.cse535.project.maps.MapFragment;
+import com.asu.cse535.project.maps.MapsActivity;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -59,6 +64,7 @@ import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.SetOptions;
 
 import java.util.ArrayList;
@@ -68,6 +74,7 @@ import java.util.Map;
 import static com.asu.cse535.project.Constant.ERROR_DIALOG_REQUEST;
 import static com.asu.cse535.project.Constant.PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION;
 import static com.asu.cse535.project.Constant.PERMISSIONS_REQUEST_ENABLE_GPS;
+import static com.asu.cse535.project.Constant.REQUEST_CODE_CURRENT_LOCATION;
 
 /**
  * @author mariogp18, anh nguyen
@@ -80,9 +87,10 @@ public class MainActivity extends AppCompatActivity
     String shareBody = "Share";
     String LOG = "MainActivity";
 
-    private static final String TAG = "";
+    //private static final String TAG = "";
     private User user;
-    int RC_SIGN_IN = 0;
+    private static final String TAG = MainActivity.class.getSimpleName();
+    private static final int RC_SIGN_IN = 0;
     private SignInButton signInButton;
     private GoogleSignInClient GoogleSignInClient;
     private NavigationView navigationView;
@@ -95,8 +103,10 @@ public class MainActivity extends AppCompatActivity
 
     Button alert;
     DocumentReference userContactsDocRef;
+    DocumentReference userLocations;
     ArrayList<String> phone_keys;
 
+    private HomeFragment fragInfo;
 
     public boolean mLocationPermissionGranted = false;
 
@@ -106,7 +116,21 @@ public class MainActivity extends AppCompatActivity
     private float acelLast; // last acceleration including gravity
     private float shake; // acceleration apart from gravity
     private boolean shaking = false;
-    public boolean wait = false;
+//    private boolean wait = false;
+
+
+    private SpeechRecognizer speechRecognizer;
+    private Intent speechRecognizerIntent;
+    private final int REQ_CODE_SPEECH_INPUT = 100;
+    private final int MY_PERMISSIONS_RECORD_AUDIO = 1;
+    private byte count;
+    private long startMillis=0;
+
+    private double latitude, longitude;
+
+    //private static boolean wait = true;
+    Bundle send;
+    public static boolean wait = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -149,13 +173,18 @@ public class MainActivity extends AppCompatActivity
         FBDB = initFirestore();
 
         if(savedInstanceState == null){
-            getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new HomeFragment()).commit();
+//            send = new Bundle();
+//            send.putBoolean("Alert",wait);
+//            fragInfo = new HomeFragment();
+//            fragInfo.setArguments(send);
+            getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new HomeFragment(),"HomeFragment").commit();
             navigationView.setCheckedItem(R.id.nav_home);
 
         }
 
         addIDDocument();
 
+        requestAudioPermissions();
 
     }
 
@@ -165,6 +194,8 @@ public class MainActivity extends AppCompatActivity
 
         if (AreYouSignInAccount != null){
             String UserID = AreYouSignInAccount.getUid();
+
+            userLocations = firebaseDB.collection(getString(R.string.collection_user_locations)).document(getString(R.string.user_location_db_id));
 
             userContactsDocRef = firebaseDB.collection("users").document(UserID);
 
@@ -195,9 +226,9 @@ public class MainActivity extends AppCompatActivity
             userContactsDocRef.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                 @Override
                 public void onSuccess(DocumentSnapshot documentSnapshot) {
-                    if(documentSnapshot.exists()) {
+                    if (documentSnapshot.exists()) {
                         user = documentSnapshot.toObject(User.class);
-                        if(user.getEmergencyContacts() == null){
+                        if (user.getEmergencyContacts() == null) {
                             Map<String, Object> contactsMap = new HashMap<>();
                             //contactsMap.put(name, phoneNumber);
 
@@ -222,7 +253,7 @@ public class MainActivity extends AppCompatActivity
                                     });
                         }
 
-                        if(user.getLocations() == null){
+                        if (user.getLocations() == null) {
                             Map<String, Object> subLocations = new HashMap<>();
 
                             UserLocation temp_UL = new UserLocation();
@@ -286,8 +317,6 @@ public class MainActivity extends AppCompatActivity
 
         }
 
-
-
     }
     public FirebaseFirestore initFirestore() {
         FirebaseFirestore firebaseDB = FirebaseFirestore.getInstance();
@@ -323,7 +352,7 @@ public class MainActivity extends AppCompatActivity
                nav_header_subtitle.setText(personEmail);
            }
            if(personImage != null){
-               Glide.with(this).load(personImage).fitCenter().apply(new RequestOptions().override(108, 108)).placeholder(R.drawable.ic_launcher_foreground).into(nav_imageView);
+               Glide.with(this).load(personImage).fitCenter().apply(new RequestOptions().override(108, 108)).placeholder(R.drawable.ic_unsafe).into(nav_imageView);
            }
 
 
@@ -332,6 +361,7 @@ public class MainActivity extends AppCompatActivity
            navigationView.getMenu().findItem(R.id.nav_log_in).setVisible(false);
            navigationView.getMenu().findItem(R.id.nav_my_contacts).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_map).setVisible(true);
+           navigationView.getMenu().findItem(R.id.nav_unsafe).setVisible(true);
            navigationView.getMenu().findItem(R.id.feedback).setVisible(true);
            navigationView.getMenu().findItem(R.id.nav_share).setVisible(true);
 
@@ -377,6 +407,8 @@ public class MainActivity extends AppCompatActivity
             if(mLocationPermissionGranted){
                 //getChatrooms();
                 Log.d(TAG, "onActivityResult: get Location Permission.");
+
+                //get user location
             }
             else{
                 getLocationPermission();
@@ -488,7 +520,11 @@ public class MainActivity extends AppCompatActivity
 
         switch(id){
             case R.id.nav_home:
-                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new HomeFragment()).commit();
+                send = new Bundle();
+                send.putBoolean("Alert",wait);
+                fragInfo = new HomeFragment();
+                fragInfo.setArguments(send);
+                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragInfo, "HomeFragment").commit();
                 break;
             case R.id.nav_my_contacts:
 
@@ -535,7 +571,17 @@ public class MainActivity extends AppCompatActivity
                 break;
 
             case R.id.nav_map:
+                Toast.makeText( getApplicationContext(),"View Safe Zone", Toast.LENGTH_SHORT).show();
                 getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new MapFragment()).commit();
+                break;
+
+            case R.id.nav_unsafe:
+                send = new Bundle();
+                send.putBoolean("Unsafe",true);
+                MapFragment fragUnsafe = new MapFragment();
+                fragUnsafe.setArguments(send);
+                Toast.makeText( getApplicationContext(),"View Unsafe Zone", Toast.LENGTH_SHORT).show();
+                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragUnsafe).commit();
                 break;
 
             case R.id.nav_share:
@@ -596,6 +642,24 @@ public class MainActivity extends AppCompatActivity
                 firebaseSignInWithGoogleFunction(null);
             }
         }
+
+        else if (requestCode == PERMISSIONS_REQUEST_ENABLE_GPS) {
+            if(mLocationPermissionGranted){
+                //
+                Log.d(TAG, "onActivityResult: get Location Permission.");
+            }
+            else{
+                getLocationPermission();
+            }
+        }
+        else if(requestCode == REQUEST_CODE_CURRENT_LOCATION) {
+            if(resultCode == RESULT_OK){
+                Log.d(TAG, "getLastKnownLocation: called");
+                latitude = data.getDoubleExtra("latitude",0.0);
+                longitude = data.getDoubleExtra("longitude",0.0);
+                Log.d(TAG, "Location: " + latitude + " " + longitude);
+            }
+        }
     }
 
     //Refresh the main activity (calls the OnStart())
@@ -626,7 +690,6 @@ public class MainActivity extends AppCompatActivity
         this.startActivity(signInIntent);
     }
 
-
     private final SensorEventListener sensorListener = new SensorEventListener()
 
     {
@@ -654,15 +717,12 @@ public class MainActivity extends AppCompatActivity
                     shaking = true;
                     if (!wait) {
                         wait = true;
-                        //makeSound();
-                       // SendTextMessage stm = new SendTextMessage();
-                        //stm.sendMessage(MainActivity.this, false);
+                        makeSound();
 
-                        HomeFragment fragment = (HomeFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_container);
-                        FragmentManager fm = getSupportFragmentManager();
-
-                        fragment.ClickFunction();
-
+//                        HomeFragment fragment = (HomeFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_container);
+//                        FragmentManager fm = getSupportFragmentManager();
+//
+//                        fragment.ClickFunction();
                     }
 
 //                System.out.println("DO NOT SHAKE ME");
@@ -676,7 +736,6 @@ public class MainActivity extends AppCompatActivity
 //            e.printStackTrace();
 //            }
         }
-
         @Override
         public void onAccuracyChanged(Sensor sensor,int accuracy) {
         }
@@ -689,20 +748,49 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void run() {
                 try {
-                    //Thread.sleep(1000);
+                    Thread.sleep(1000);
 //                    System.out.println("Shake: " + shaking);
 //                    System.out.println("Wait: " + wait);
                     // we add 100 new entries
                     if (wait && shaking) {
+//                        SendTextMessage stm = new SendTextMessage();
+//                        stm.sendMessage(MainActivity.this, false);
                         Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
                         Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
                         r.play();
-                        Thread.sleep(10000);
-                        wait = false;
-                        r.stop();
 
+                        checkHomeFragment();
+
+                        for (int i = 50; i > 0; i--) {
+//                            receive = getIntent();
+//                            boolean click = receive.getBooleanExtra("Click",true);
+                            //System.out.println("Click Main: " + wait);
+                            //System.out.println("Cancel Alert in: " +i + " seconds");
+                            Thread.sleep(200);
+                            if(!wait){
+                                r.stop();
+                                break;
+
+                            }
+                        }
+
+                        r.stop();
+                        String UserID = AreYouSignInAccount.getUid();
+                        Intent mapLocation = new Intent(getApplicationContext(), MapsActivity.class);
+                        mapLocation.putExtra("Activity",  "MainActivity");
+                        mapLocation.putExtra("UserID",UserID);
+                        startActivityForResult(mapLocation, REQUEST_CODE_CURRENT_LOCATION);
+                        wait = false;
+                        checkHomeFragment();
                     }
                     wait = false;
+
+//                    send.putBoolean("Alert",wait);
+//                    HomeFragment fragInfo = new HomeFragment();
+//                    fragInfo.setArguments(send);
+
+//                    send.putExtra("alarm", wait);
+
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -710,5 +798,101 @@ public class MainActivity extends AppCompatActivity
         }).start();
     }
 
+//    private void promptSpeechInput() {
+//        speechRecognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+//        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+//                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+//        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+////        intent.putExtra(RecognizerIntent.EXTRA_PROMPT,
+////                getString(R.string.speech_prompt));
+////        try {
+////            startActivityForResult(intent, REQ_CODE_SPEECH_INPUT);
+////        } catch (ActivityNotFoundException a) {
+////            Toast.makeText(getApplicationContext(),
+////                    getString(R.string.speech_not_supported),
+////                    Toast.LENGTH_SHORT).show();
+////        }
+//    }
+
+    private void requestAudioPermissions() {
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            //When permission is not granted by user, show them message why this permission is needed.
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.RECORD_AUDIO)) {
+                Toast.makeText(this, "Please grant permissions to record audio", Toast.LENGTH_LONG).show();
+
+                //Give user option to still opt-in the permissions
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.RECORD_AUDIO},
+                        MY_PERMISSIONS_RECORD_AUDIO);
+
+            } else {
+                // Show user dialog to grant permission to record audio
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.RECORD_AUDIO},
+                        MY_PERMISSIONS_RECORD_AUDIO);
+            }
+        }
+    }
+    private void lockScreenPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + getPackageName()));
+            startActivityForResult(intent, 1);
+        }
+    }
+
+    public static void updateAlert(boolean clickHome){
+        //your textview
+        wait = clickHome;
+    }
+
+    private void saveUserLocation() {
+//        DocumentReference locationRef = firebaseDB
+//                .collection(getString(R.string.collection_user_locations))
+//                .document(FirebaseAuth.getInstance().getUid());
+        GeoPoint geoPoint = new GeoPoint(latitude,longitude);
+        userLocations.set(geoPoint, SetOptions.merge())
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+
+
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+
+
+                    }
+                });
+    }
+
+    private void checkHomeFragment() {
+        System.out.println("checkHomeFragment");
+        Fragment fragment = getSupportFragmentManager().findFragmentByTag("HomeFragment");
+        if(fragment!=null && fragment.isVisible())
+        {
+                            System.out.println("HomeFragment is running");
+                            System.out.println("Wait Before Send: " + wait);
+            send = new Bundle();
+            send.putBoolean("Alert",wait);
+            fragInfo = new HomeFragment();
+            fragInfo.setArguments(send);
+            getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragInfo, "HomeFragment").commit();
+        }
+        else
+        {
+            System.out.println("OtherFragment is running");
+            //do your code here
+        }
+    }
+
 }
+
 

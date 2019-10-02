@@ -241,7 +241,7 @@ public class FileDownload extends AsyncTask<String, Integer, String> {
 
                 // Write data to file
                 output.write(data, 0, count);
-                //System.out.println("count: " + count);
+                System.out.println("count: " + count);
             }
             // Flush output
             output.flush();

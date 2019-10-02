@@ -68,7 +68,7 @@ public class Assignment2Fragment extends Fragment {
     private static final String STATE_START = "ButtonStartStop";
 
 
-    private final static long ACC_CHECK_INTERVAL = 1000; // 1000ms
+    private final static long ACC_CHECK_INTERVAL = 50; // 1000ms
     private long lastSaved = System.currentTimeMillis();
 
     private FileUpload fileupload;
@@ -132,10 +132,11 @@ public class Assignment2Fragment extends Fragment {
                 buttonStartStop = true;
                 //If not included it will create mutliple startGraph (speed it up)
                 if(buttonStart) {
-                    CreateTable();
-                    buttonStart = false;
-                    checkSensor = true;
-                    startGraph();
+                    if(CreateTable()) {
+                        buttonStart = false;
+                        checkSensor = true;
+                        startGraph();
+                    }
                 }
 
             }
@@ -179,13 +180,13 @@ public class Assignment2Fragment extends Fragment {
                 if (mySensor.getType() == Sensor.TYPE_ACCELEROMETER) {
 //                index++;
                     if ((System.currentTimeMillis() - lastSaved) > ACC_CHECK_INTERVAL) {
-//                    Log.d("Test","ResultX: "+x);
-//                    Log.d("Test","ResultY: "+y);
-//                    Log.d("Test","ResultZ: "+z);
+                    Log.d("Test","ResultX: "+x);
+                    Log.d("Test","ResultY: "+y);
+                    Log.d("Test","ResultZ: "+z);
                         lastSaved = System.currentTimeMillis();
-                        x = sensorEvent.values[0];
+                        z = sensorEvent.values[0];
                         y = sensorEvent.values[1];
-                        z = sensorEvent.values[2];
+                        x = sensorEvent.values[2];
 
                         if(buttonStartStop) {
                             //Log.d("Test","lastX: "+lastX);
