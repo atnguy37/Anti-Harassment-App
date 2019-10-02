@@ -32,9 +32,6 @@
         <activity
             android:name=".maps.MapsActivity"></activity>
         <activity
-            android:name=".VoiceActivity"
-            android:label="@string/voice_recognition"></activity>
-        <activity
             android:name=".MainActivity"
             android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar">
